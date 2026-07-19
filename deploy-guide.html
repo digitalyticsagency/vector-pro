@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>VECTOR PRO — GitHub Deploy Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#070A0F; --bg2:#0C1018; --panel:#101828; --panel2:#162135;
+  --bdr:rgba(255,255,255,.07); --bdr2:rgba(255,255,255,.13);
+  --teal:#00E5C8; --orange:#FF6030; --yellow:#FFD060;
+  --red:#FF3355; --green:#35FF90;
+  --ink:#E6EDF8; --ink2:#8899BB; --ink3:#445068;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{
+  font-family:'Rajdhani',system-ui,sans-serif;
+  background:var(--bg);color:var(--ink);
+  -webkit-font-smoothing:antialiased;line-height:1.6;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(0,229,200,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,200,.025) 1px,transparent 1px);
+  background-size:48px 48px;
+}
+.wrap{max-width:860px;margin:0 auto;padding:0 32px 80px;position:relative;z-index:1}
+
+/* NAV */
+.topnav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(7,10,15,.92);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 32px;margin-bottom:0;
+}
+.nav-logo{font-weight:700;font-size:18px;letter-spacing:3px;color:var(--teal);
+  text-shadow:0 0 20px rgba(0,229,200,.3)}
+.nav-logo span{color:var(--orange);font-size:10px;letter-spacing:1.5px;vertical-align:super}
+.nav-pills{display:flex;gap:8px}
+.nav-pill{
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;
+  padding:5px 12px;border-radius:20px;border:1px solid var(--bdr2);
+  color:var(--ink2);text-decoration:none;text-transform:uppercase;transition:all .2s;
+}
+.nav-pill:hover{border-color:var(--teal);color:var(--teal)}
+
+/* HERO */
+.guide-hero{
+  padding:60px 0 48px;border-bottom:1px solid var(--bdr);margin-bottom:56px;
+}
+.guide-eyebrow{
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;
+  text-transform:uppercase;color:var(--teal);display:flex;align-items:center;gap:10px;margin-bottom:16px;
+}
+.guide-eyebrow::before{content:'';width:24px;height:1px;background:var(--teal)}
+.guide-h1{font-size:clamp(36px,5vw,60px);font-weight:700;letter-spacing:-.5px;line-height:.95;margin-bottom:14px}
+.guide-h1 em{font-style:normal;color:var(--teal)}
+.guide-sub{font-size:18px;color:var(--ink2);max-width:580px;line-height:1.65;margin-bottom:28px}
+
+/* Timeline progress */
+.progress-bar{
+  display:flex;gap:0;margin-bottom:0;
+  background:var(--panel);border:1px solid var(--bdr);border-radius:6px;overflow:hidden;
+}
+.pb-step{
+  flex:1;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:9px;
+  letter-spacing:1px;text-transform:uppercase;color:var(--ink3);text-align:center;
+  border-right:1px solid var(--bdr);transition:all .2s;cursor:pointer;text-decoration:none;
+}
+.pb-step:last-child{border-right:none}
+.pb-step:hover,.pb-step.active{background:rgba(0,229,200,.06);color:var(--teal)}
+.pb-step span{display:block;font-size:7px;color:var(--ink3);margin-top:2px}
+
+/* PHASE HEADERS */
+.phase{margin-bottom:64px}
+.phase-hd{
+  display:flex;align-items:center;gap:16px;
+  padding:20px 24px;background:var(--panel2);
+  border:1px solid var(--bdr2);border-radius:8px 8px 0 0;
+  margin-bottom:0;border-bottom:2px solid var(--teal);
+}
+.phase-num{
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;
+  color:var(--bg);background:var(--teal);
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;flex:0 0 28px;
+}
+.phase-title{font-size:22px;font-weight:700;letter-spacing:.3px}
+.phase-title em{font-style:normal;color:var(--teal)}
+.phase-meta{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--teal);
+  background:rgba(0,229,200,.08);border:1px solid rgba(0,229,200,.2);
+  padding:4px 10px;border-radius:20px;white-space:nowrap}
+
+.phase-body{
+  background:var(--bg2);border:1px solid var(--bdr);border-top:none;
+  border-radius:0 0 8px 8px;overflow:hidden;
+}
+
+/* STEPS inside a phase */
+.step{
+  padding:24px 28px;border-bottom:1px solid var(--bdr);
+  display:grid;grid-template-columns:36px 1fr;gap:20px;align-items:start;
+}
+.step:last-child{border-bottom:none}
+.step-n{
+  font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;
+  color:var(--teal);padding-top:2px;
+}
+.step-title{font-size:19px;font-weight:700;margin-bottom:6px;letter-spacing:.2px}
+.step-desc{font-size:14px;color:var(--ink2);line-height:1.7;margin-bottom:0}
+.step-desc b{color:var(--ink);font-weight:600}
+.step-desc a{color:var(--teal);text-decoration:none}
+.step-desc a:hover{text-decoration:underline}
+
+/* Code blocks */
+.codeblock{
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  background:rgba(0,0,0,.5);border:1px solid rgba(0,229,200,.15);
+  border-radius:5px;padding:14px 16px;margin-top:12px;
+  color:var(--ink2);line-height:1.8;overflow-x:auto;
+}
+.codeblock .k{color:var(--teal)} /* keyword / teal */
+.codeblock .o{color:var(--orange)} /* orange */
+.codeblock .g{color:var(--green)} /* green / success */
+.codeblock .y{color:var(--yellow)} /* yellow */
+.codeblock .c{color:var(--ink3)} /* comment */
+
+/* URL badge */
+.url-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  background:rgba(0,229,200,.06);border:1px solid rgba(0,229,200,.2);
+  border-radius:4px;padding:8px 14px;margin-top:10px;
+  color:var(--teal);word-break:break-all;
+}
+.url-badge::before{content:'→';opacity:.6}
+
+/* Warning / note / tip callouts */
+.note,.warn,.tip,.success{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:14px 16px;border-radius:5px;margin-top:12px;
+  font-size:13px;line-height:1.65;
+}
+.note{background:rgba(0,229,200,.05);border:1px solid rgba(0,229,200,.15);color:var(--ink2)}
+.warn{background:rgba(255,208,96,.05);border:1px solid rgba(255,208,96,.2);color:var(--ink2)}
+.tip {background:rgba(53,255,144,.04);border:1px solid rgba(53,255,144,.15);color:var(--ink2)}
+.success{background:rgba(53,255,144,.06);border:1px solid rgba(53,255,144,.2);color:var(--green)}
+.note-icon,.warn-icon,.tip-icon,.success-icon{flex:0 0 18px;font-size:14px}
+
+/* Screenshot mock frames */
+.screen-frame{
+  border:1px solid var(--bdr2);border-radius:8px;overflow:hidden;
+  margin-top:14px;background:#0A0E18;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+.frame-bar{
+  background:#0D1420;padding:9px 14px;border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;gap:8px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink2);
+}
+.frame-dot{width:9px;height:9px;border-radius:50%}
+.frame-url{
+  flex:1;background:rgba(0,0,0,.3);border:1px solid var(--bdr);
+  border-radius:4px;padding:4px 10px;font-size:9px;color:var(--ink2);
+  font-family:'JetBrains Mono',monospace;margin:0 8px;
+}
+.frame-body{padding:20px 22px}
+
+/* Form field mockups */
+.mock-form{display:flex;flex-direction:column;gap:12px}
+.mock-label{
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;
+  text-transform:uppercase;color:var(--ink3);margin-bottom:4px;
+}
+.mock-input{
+  width:100%;padding:9px 12px;border-radius:4px;
+  background:rgba(7,10,15,.8);border:1px solid var(--bdr2);
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink);
+  display:block;
+}
+.mock-input.active{border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,229,200,.1)}
+.mock-input.filled{color:var(--teal)}
+.mock-input.secret{color:var(--ink3);letter-spacing:4px}
+
+.mock-check{
+  display:flex;align-items:center;gap:10px;padding:12px;
+  border:1px solid var(--bdr2);border-radius:5px;
+}
+.mock-toggle{
+  width:36px;height:20px;border-radius:10px;flex:0 0 36px;
+  position:relative;cursor:pointer;transition:background .2s;
+}
+.mock-toggle.on{background:rgba(0,229,200,.25);border:1px solid rgba(0,229,200,.4)}
+.mock-toggle.off{background:rgba(255,255,255,.08);border:1px solid var(--bdr2)}
+.mock-toggle::after{
+  content:'';position:absolute;top:3px;width:12px;height:12px;
+  border-radius:50%;transition:all .2s;
+}
+.mock-toggle.on::after{background:var(--teal);right:3px}
+.mock-toggle.off::after{background:var(--ink3);left:3px}
+.mock-check-label{font-size:13px}
+
+.mock-btn{
+  padding:10px 20px;border-radius:5px;font-family:'Rajdhani',sans-serif;
+  font-weight:700;font-size:14px;letter-spacing:.8px;cursor:pointer;
+  display:inline-block;margin-top:4px;
+}
+.mock-btn.primary{background:var(--teal);color:#021018;border:none}
+.mock-btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--bdr2)}
+.mock-row{display:flex;gap:10px}
+
+/* Scope checkbox grid */
+.scope-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.scope-item{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  border:1px solid var(--bdr);border-radius:4px;font-size:13px;
+  font-family:'JetBrains Mono',monospace;
+}
+.scope-item.checked{border-color:var(--teal);background:rgba(0,229,200,.06);color:var(--teal)}
+.scope-item.unchecked{color:var(--ink3)}
+.scope-check{width:14px;height:14px;border-radius:3px;flex:0 0 14px}
+.scope-check.on{background:var(--teal)}
+.scope-check.off{background:transparent;border:1px solid var(--ink3)}
+.scope-desc{font-size:10px;color:var(--ink3);display:block;margin-top:1px;font-family:'Rajdhani',sans-serif}
+
+/* Panel mockup (VECTOR PRO side panel) */
+.vp-panel{
+  background:#0C1018;border:1px solid var(--bdr2);border-radius:8px;
+  overflow:hidden;margin-top:14px;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+.vp-panel-hd{
+  background:#101828;padding:10px 14px;border-bottom:1px solid var(--bdr);
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--ink3);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.vp-panel-hd em{font-style:normal;color:var(--ink3)}
+.vp-panel-body{padding:16px 14px}
+.vp-gh-inp{
+  width:100%;padding:7px 10px;border-radius:4px;
+  background:var(--panel);border:1px solid var(--bdr2);
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink);
+  margin-bottom:8px;display:block;
+}
+.vp-gh-inp.filled{color:var(--teal)}
+.vp-gh-inp.secret{color:var(--ink3);letter-spacing:3px}
+.vp-gh-btns{display:flex;gap:8px;margin-top:10px}
+.vp-btn{
+  flex:1;padding:9px;border-radius:4px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;
+  cursor:pointer;
+}
+.vp-btn.init{background:rgba(0,229,200,.08);border:1px solid rgba(0,229,200,.25);color:var(--teal)}
+.vp-btn.deploy{background:var(--teal);border:none;color:#021018;font-weight:700}
+.vp-status{
+  font-family:'JetBrains Mono',monospace;font-size:9px;
+  padding:10px 12px;border-radius:4px;margin-top:10px;
+  line-height:1.8;white-space:pre-line;
+}
+.vp-status.ok{background:rgba(53,255,144,.04);border:1px solid rgba(53,255,144,.2);color:var(--green)}
+.vp-status.running{background:rgba(0,229,200,.04);border:1px solid rgba(0,229,200,.15);color:var(--teal)}
+
+/* Final deployment result */
+.deploy-result{
+  background:linear-gradient(135deg,rgba(0,229,200,.05),rgba(53,255,144,.03));
+  border:1px solid rgba(0,229,200,.2);border-radius:8px;
+  padding:28px;margin-top:16px;text-align:center;
+}
+.deploy-result-icon{font-size:40px;margin-bottom:12px}
+.deploy-result-url{
+  font-family:'JetBrains Mono',monospace;font-size:16px;
+  color:var(--teal);text-decoration:none;
+  background:rgba(0,229,200,.07);border:1px solid rgba(0,229,200,.2);
+  padding:12px 24px;border-radius:5px;display:inline-block;margin-bottom:16px;
+}
+.deploy-result-note{font-size:13px;color:var(--ink2)}
+
+/* Separator */
+.divider{height:1px;background:var(--bdr);margin:48px 0}
+
+/* SUMMARY CARD */
+.summary{
+  background:var(--panel);border:1px solid var(--bdr2);border-radius:8px;
+  overflow:hidden;margin-top:16px;
+}
+.summary-hd{
+  background:rgba(0,229,200,.06);border-bottom:1px solid rgba(0,229,200,.15);
+  padding:14px 20px;font-family:'JetBrains Mono',monospace;font-size:10px;
+  letter-spacing:2px;text-transform:uppercase;color:var(--teal);
+}
+.summary-body{padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.sumrow{
+  display:flex;gap:12px;align-items:flex-start;font-size:14px;
+}
+.sumrow-n{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
+  color:var(--teal);flex:0 0 20px;padding-top:2px;
+}
+.sumrow-text{color:var(--ink2)}
+.sumrow-text b{color:var(--ink)}
+.sumrow-text code{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  background:rgba(0,0,0,.3);padding:1px 5px;border-radius:3px;color:var(--teal);
+}
+
+/* Responsive */
+@media(max-width:600px){
+  .topnav{padding:12px 16px}
+  .wrap{padding:0 16px 60px}
+  .progress-bar{flex-direction:column}
+  .pb-step{border-right:none;border-bottom:1px solid var(--bdr)}
+  .pb-step:last-child{border-bottom:none}
+  .scope-grid{grid-template-columns:1fr}
+  .mock-row{flex-direction:column}
+}
+
+/* Print */
+@media print{
+  body{background:#fff;color:#000}
+  body::before{display:none}
+  .topnav{position:static}
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="nav-logo">VECTOR<span>PRO</span></div>
+  <div class="nav-pills">
+    <a class="nav-pill" href="#phase1">Token</a>
+    <a class="nav-pill" href="#phase2">Repo</a>
+    <a class="nav-pill" href="#phase3">Deploy</a>
+    <a class="nav-pill" href="#phase4">iPhone</a>
+    <a class="nav-pill" href="#phase5">Verify</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="guide-hero">
+    <div class="guide-eyebrow">Complete deployment guide</div>
+    <h1 class="guide-h1">Get VECTOR PRO<br>live on <em>GitHub</em>.</h1>
+    <p class="guide-sub">Five phases. Every click documented. From zero to a live URL your iPhone and MacBook can both open — in under five minutes.</p>
+    <div class="progress-bar">
+      <a class="nav-pill pb-step active" href="#phase1">01<span>Get a token</span></a>
+      <a class="nav-pill pb-step" href="#phase2">02<span>Create repo</span></a>
+      <a class="nav-pill pb-step" href="#phase3">03<span>Deploy app</span></a>
+      <a class="nav-pill pb-step" href="#phase4">04<span>iPhone setup</span></a>
+      <a class="nav-pill pb-step" href="#phase5">05<span>Verify live</span></a>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       PHASE 1 — GITHUB TOKEN
+  ═══════════════════════════════════════ -->
+  <div class="phase" id="phase1">
+    <div class="phase-hd">
+      <div class="phase-num">1</div>
+      <div class="phase-title">Create a GitHub <em>classic token</em></div>
+      <div class="phase-meta">⏱ ~2 min</div>
+    </div>
+    <div class="phase-body">
+
+      <div class="step">
+        <div class="step-n">1.1</div>
+        <div>
+          <div class="step-title">Open the token creation page</div>
+          <div class="step-desc">
+            Go directly to this URL — it opens the New Personal Access Token form:
+          </div>
+          <div class="url-badge">https://github.com/settings/tokens/new</div>
+          <div class="warn" style="margin-top:12px">
+            <div class="warn-icon">⚠</div>
+            <div>GitHub will ask you to <b>confirm your password</b> before showing this page. That is normal — it is their sudo-mode security check. Enter your GitHub password when prompted.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">1.2</div>
+        <div>
+          <div class="step-title">Fill in the token details</div>
+          <div class="step-desc">On the New Personal Access Token page you will see these fields:</div>
+          <div class="screen-frame" style="margin-top:14px">
+            <div class="frame-bar">
+              <div class="frame-dot" style="background:#FF5F56"></div>
+              <div class="frame-dot" style="background:#FFBD2E;margin-left:6px"></div>
+              <div class="frame-dot" style="background:#27C93F;margin-left:6px"></div>
+              <div class="frame-url">github.com/settings/tokens/new</div>
+            </div>
+            <div class="frame-body">
+              <div class="mock-form">
+                <div>
+                  <div class="mock-label">Note (token name)</div>
+                  <input class="mock-input filled" type="text" value="vector-pro-deploy" readonly/>
+                </div>
+                <div>
+                  <div class="mock-label">Expiration</div>
+                  <input class="mock-input" type="text" value="90 days  ▾" readonly/>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="note" style="margin-top:10px">
+            <div class="note-icon">ℹ</div>
+            <div>Set the <b>Note</b> to <code style="font-family:'JetBrains Mono',monospace;font-size:11px;background:rgba(0,229,200,.08);padding:1px 5px;border-radius:3px;color:var(--teal)">vector-pro-deploy</code> so you can identify this token later. Expiration can be 90 days or No expiration.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">1.3</div>
+        <div>
+          <div class="step-title">Tick exactly two scope checkboxes</div>
+          <div class="step-desc">
+            Scroll down to the <b>Select scopes</b> section. You need <b>repo</b> and <b>workflow</b> — nothing else is required.
+          </div>
+          <div class="scope-grid">
+            <div class="scope-item checked">
+              <div class="scope-check on"></div>
+              <div>
+                <div>repo</div>
+                <span class="scope-desc">Full control of private repos (includes read/write)</span>
+              </div>
+            </div>
+            <div class="scope-item unchecked">
+              <div class="scope-check off"></div>
+              <div>
+                <div>admin:repo_hook</div>
+                <span class="scope-desc">Not needed — skip</span>
+              </div>
+            </div>
+            <div class="scope-item checked">
+              <div class="scope-check on"></div>
+              <div>
+                <div>workflow</div>
+                <span class="scope-desc">Allows pushing .github/workflows/ files — required for GitHub Actions deploy</span>
+              </div>
+            </div>
+            <div class="scope-item unchecked">
+              <div class="scope-check off"></div>
+              <div>
+                <div>everything else</div>
+                <span class="scope-desc">Leave unchecked</span>
+              </div>
+            </div>
+          </div>
+          <div class="warn" style="margin-top:12px">
+            <div class="warn-icon">⚠</div>
+            <div>
+              <b>Must be a classic token</b> — NOT a fine-grained PAT. Fine-grained tokens cannot write <code style="font-family:'JetBrains Mono',monospace;font-size:11px">.github/workflows/</code> files, which is exactly what the deploy needs. The page you want is: <b>Tokens (classic)</b> in the left sidebar, not <em>Fine-grained tokens</em>.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">1.4</div>
+        <div>
+          <div class="step-title">Click "Generate token" and copy it immediately</div>
+          <div class="step-desc">
+            Scroll to the bottom and click <b>Generate token</b>. GitHub shows the token <b>only once</b>.
+          </div>
+          <div class="codeblock" style="margin-top:12px">
+<span class="g">✓ Token created:</span>
+<span class="k">ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</span>
+<span class="c">
+← Copy this now. It disappears when you leave the page.
+   Paste it into a text note temporarily.</span>
+          </div>
+          <div class="tip">
+            <div class="tip-icon">💡</div>
+            <div>Paste the token into a <b>temporary note</b> or keep this tab open. You will need to paste it into VECTOR PRO in Phase 3. Never commit it to a repo or share it.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       PHASE 2 — CREATE THE REPO
+  ═══════════════════════════════════════ -->
+  <div class="phase" id="phase2">
+    <div class="phase-hd">
+      <div class="phase-num">2</div>
+      <div class="phase-title">Create the <em>vector-pro</em> repository</div>
+      <div class="phase-meta">⏱ ~1 min</div>
+    </div>
+    <div class="phase-body">
+
+      <div class="step">
+        <div class="step-n">2.1</div>
+        <div>
+          <div class="step-title">Open the New Repository page</div>
+          <div class="step-desc">
+            The <b>Create a new repository</b> page is already open in your browser tab from earlier.
+            It has been pre-filled with:
+          </div>
+          <div class="screen-frame" style="margin-top:12px">
+            <div class="frame-bar">
+              <div class="frame-dot" style="background:#FF5F56"></div>
+              <div class="frame-dot" style="background:#FFBD2E;margin-left:6px"></div>
+              <div class="frame-dot" style="background:#27C93F;margin-left:6px"></div>
+              <div class="frame-url">github.com/new</div>
+            </div>
+            <div class="frame-body">
+              <div class="mock-form">
+                <div style="display:flex;gap:12px;align-items:flex-end">
+                  <div style="flex:0 0 auto">
+                    <div class="mock-label">Owner</div>
+                    <input class="mock-input filled" style="width:180px" type="text" value="digitalyticsagency  ▾" readonly/>
+                  </div>
+                  <div style="padding-bottom:9px;color:var(--ink3)">/</div>
+                  <div style="flex:1">
+                    <div class="mock-label">Repository name ✱</div>
+                    <input class="mock-input filled active" type="text" value="vector-pro" readonly/>
+                  </div>
+                </div>
+                <div>
+                  <div class="mock-label">Description</div>
+                  <input class="mock-input" style="color:var(--ink2)" type="text" value="Advanced real-time object tracking — YOLOv8n, ByteTrack, speed estimation, drone guidance" readonly/>
+                </div>
+                <div class="mock-check">
+                  <div class="mock-toggle on"></div>
+                  <div class="mock-check-label">Public <span style="font-size:12px;color:var(--ink3)">— required for GitHub Pages (free tier)</span></div>
+                </div>
+                <div class="mock-check" style="border-color:rgba(0,229,200,.25);background:rgba(0,229,200,.04)">
+                  <div class="mock-toggle on"></div>
+                  <div class="mock-check-label" style="color:var(--teal)">Add a README file <span style="font-size:12px;color:var(--ink3)">← turn this ON</span></div>
+                </div>
+              </div>
+              <div style="margin-top:16px">
+                <div class="mock-btn primary">Create repository</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">2.2</div>
+        <div>
+          <div class="step-title">Toggle "Add a README file" to ON</div>
+          <div class="step-desc">
+            Find the <b>Add a README file</b> toggle and switch it <b>ON</b>. This is important — it initialises the repo with a commit on the <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal)">main</code> branch, which is required before the VECTOR PRO app can push files to it.
+          </div>
+          <div class="note">
+            <div class="note-icon">ℹ</div>
+            <div>If the repo has no initial commit, the GitHub API push will fail with "branch not found". The README toggle creates that first commit automatically.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">2.3</div>
+        <div>
+          <div class="step-title">Click "Create repository"</div>
+          <div class="step-desc">
+            Click the green <b>Create repository</b> button. GitHub will create <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal)">digitalyticsagency/vector-pro</code> and redirect you to the new repo page.
+          </div>
+          <div class="success">
+            <div class="success-icon">✓</div>
+            <div>You should land on <code style="font-family:'JetBrains Mono',monospace;font-size:11px">github.com/digitalyticsagency/vector-pro</code> with a README.md file visible. The repo is ready.</div>
+          </div>
+          <div class="note" style="margin-top:10px">
+            <div class="note-icon">ℹ</div>
+            <div>Leave this tab open. The VECTOR PRO app will push all files into it automatically in Phase 3 — you do not need to manually upload anything.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       PHASE 3 — DEPLOY FROM THE APP
+  ═══════════════════════════════════════ -->
+  <div class="phase" id="phase3">
+    <div class="phase-hd">
+      <div class="phase-num">3</div>
+      <div class="phase-title">Deploy from <em>VECTOR PRO</em></div>
+      <div class="phase-meta">⏱ ~2 min</div>
+    </div>
+    <div class="phase-body">
+
+      <div class="step">
+        <div class="step-n">3.1</div>
+        <div>
+          <div class="step-title">Open VECTOR PRO locally</div>
+          <div class="step-desc">
+            Open a Terminal, navigate to the <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal)">vector-pro</code> folder, and start a local server:
+          </div>
+          <div class="codeblock">
+<span class="c"># Navigate to your vector-pro folder</span>
+cd ~/Downloads/vector-pro
+
+<span class="c"># Start local server</span>
+<span class="k">python3 -m http.server 8080</span>
+
+<span class="c"># Then open in Chrome or Safari:</span>
+<span class="g">http://localhost:8080</span>
+          </div>
+          <div class="note" style="margin-top:10px">
+            <div class="note-icon">ℹ</div>
+            <div>You only need the local server to access the GitHub deploy panel — no camera needed for this step. The deploy works entirely via the GitHub API in your browser.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">3.2</div>
+        <div>
+          <div class="step-title">Scroll to "GitHub Deploy" in the right panel</div>
+          <div class="step-desc">
+            In VECTOR PRO, scroll the right-hand side panel all the way down until you see the <b>GitHub Deploy</b> section (second from the bottom, above Drone Bridge).
+          </div>
+          <div class="vp-panel" style="margin-top:14px">
+            <div class="vp-panel-hd">GitHub Deploy <em id="ghTag">not configured</em></div>
+            <div class="vp-panel-body">
+              <div class="mock-label" style="margin-bottom:4px">GitHub Username</div>
+              <input class="vp-gh-inp filled" type="text" value="digitalyticsagency" readonly/>
+              <div class="mock-label" style="margin-bottom:4px">Repository name</div>
+              <input class="vp-gh-inp filled" type="text" value="vector-pro" readonly/>
+              <div class="mock-label" style="margin-bottom:4px">Classic token (repo + workflow scope)</div>
+              <input class="vp-gh-inp secret" type="password" value="ghp_xxxxxxxxxxxxxxxxxxxx" readonly/>
+              <div class="vp-gh-btns">
+                <button class="vp-btn init">Init Repo</button>
+                <button class="vp-btn deploy">▶ Deploy Update</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">3.3</div>
+        <div>
+          <div class="step-title">Fill in the three fields</div>
+          <div class="step-desc">
+            Enter all three values exactly as shown:
+          </div>
+          <div class="codeblock" style="margin-top:12px">
+<span class="k">GitHub Username</span>     <span class="g">digitalyticsagency</span>
+<span class="k">Repository name</span>     <span class="g">vector-pro</span>
+<span class="k">Classic token</span>       <span class="g">ghp_xxxx...</span>  <span class="c">← paste from Step 1.4</span>
+          </div>
+          <div class="warn" style="margin-top:10px">
+            <div class="warn-icon">⚠</div>
+            <div>The token field is a password input — it will show dots. That is intentional. The token is sent directly to the GitHub API from your browser and is never stored or transmitted anywhere else.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">3.4</div>
+        <div>
+          <div class="step-title">Tap "Init Repo" — watch the status</div>
+          <div class="step-desc">
+            Click <b>Init Repo</b>. The app will push five files to GitHub and enable Pages. Watch the status box below the buttons:
+          </div>
+          <div class="vp-panel" style="margin-top:14px">
+            <div class="vp-panel-hd">GitHub Deploy <em style="color:var(--teal)">live ✓</em></div>
+            <div class="vp-panel-body">
+              <div class="vp-status running">Checking repo…
+Repo exists → pushing files…
+✓ index.html pushed (80KB)
+✓ landing.html pushed (58KB)
+✓ .github/workflows/deploy.yml pushed
+✓ bridge/drone_bridge.py pushed
+✓ README.md pushed
+Enabling GitHub Pages…
+✓ Pages enabled on main branch
+→ https://digitalyticsagency.github.io/vector-pro/
+(live in ~60 seconds)</div>
+            </div>
+          </div>
+          <div class="note" style="margin-top:10px">
+            <div class="note-icon">ℹ</div>
+            <div>If it says <span style="color:var(--red)">404 Not Found</span> on the repo check, the repo does not exist yet — go back to Phase 2 and create it first, then return here.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">3.5</div>
+        <div>
+          <div class="step-title">GitHub Actions builds and deploys automatically</div>
+          <div class="step-desc">
+            The pushed <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal)">.github/workflows/deploy.yml</code> triggers a GitHub Actions run that publishes the site. You can watch it at:
+          </div>
+          <div class="url-badge">https://github.com/digitalyticsagency/vector-pro/actions</div>
+          <div class="codeblock" style="margin-top:12px">
+<span class="c">Typical Actions timeline:</span>
+
+<span class="y"> 0s</span>   Push received by GitHub
+<span class="y">~5s</span>   Actions workflow queued
+<span class="y">~20s</span>  Pages build starts
+<span class="y">~40s</span>  Pages artifact uploaded
+<span class="y">~60s</span>  Pages deployment complete ✓
+<span class="g">~65s</span>  URL live → https://digitalyticsagency.github.io/vector-pro/
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       PHASE 4 — IPHONE SETUP
+  ═══════════════════════════════════════ -->
+  <div class="phase" id="phase4">
+    <div class="phase-hd">
+      <div class="phase-num">4</div>
+      <div class="phase-title">iPhone setup — <em>fullscreen + rear camera</em></div>
+      <div class="phase-meta">⏱ ~1 min</div>
+    </div>
+    <div class="phase-body">
+
+      <div class="step">
+        <div class="step-n">4.1</div>
+        <div>
+          <div class="step-title">Open in Safari (not Chrome)</div>
+          <div class="step-desc">
+            On your iPhone, open <b>Safari</b> (not Chrome — only Safari supports Add to Home Screen with fullscreen camera). Navigate to your URL:
+          </div>
+          <div class="url-badge">https://digitalyticsagency.github.io/vector-pro/</div>
+          <div class="warn" style="margin-top:10px">
+            <div class="warn-icon">⚠</div>
+            <div>Camera access requires HTTPS — the GitHub Pages URL provides this automatically. The app will <b>not</b> work if you open it as a file:// or http:// URL on your iPhone.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">4.2</div>
+        <div>
+          <div class="step-title">Add to Home Screen for fullscreen mode</div>
+          <div class="step-desc">
+            In Safari, tap the <b>Share button</b> (box with arrow pointing up) → scroll down and tap <b>"Add to Home Screen"</b> → tap <b>Add</b>. Now open VECTOR PRO from your Home Screen.
+          </div>
+          <div class="codeblock" style="margin-top:12px">
+Safari  →  Share button (□↑)
+        →  "Add to Home Screen"
+        →  Name: "VECTOR PRO"
+        →  Add
+
+<span class="g">Result: fullscreen app, no Safari chrome, rear camera active</span>
+          </div>
+          <div class="tip">
+            <div class="tip-icon">💡</div>
+            <div>When opened from Home Screen, VECTOR PRO runs in standalone mode (no address bar). The app detects <code style="font-family:'JetBrains Mono',monospace;font-size:11px">facingMode: environment</code> and automatically switches to rear camera + turns off mirror mode.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">4.3</div>
+        <div>
+          <div class="step-title">Select maximum resolution</div>
+          <div class="step-desc">
+            In the <b>Sensor</b> panel (right side), set Resolution to the highest available for your iPhone:
+          </div>
+          <div class="codeblock" style="margin-top:10px">
+iPhone 15 Pro / Pro Max:  <span class="g">4K UHD — 3840×2160</span>
+iPhone 14 Pro / 15:       <span class="g">FHD — 1920×1080 (safe choice)</span>
+iPhone 12/13 standard:    <span class="y">HD — 1280×720 (if FHD stalls)</span>
+
+<span class="c">If the camera freezes at a high resolution, drop one level down.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">4.4</div>
+        <div>
+          <div class="step-title">Check optical zoom availability</div>
+          <div class="step-desc">
+            iPhone Pro models (12 Pro and later) expose optical zoom via the <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal)">getCapabilities()</code> API. If your device supports it, a <b>Zoom</b> slider will automatically appear in the Sensor section after the camera starts. Slide it to use 2× or 3× optical zoom for distant objects.
+          </div>
+          <div class="note">
+            <div class="note-icon">ℹ</div>
+            <div>The zoom slider only appears when the browser reports zoom capability. If it does not appear, your camera hardware or iOS version does not expose this via the web API — use the native Camera app for optical zoom and crop the view instead.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       PHASE 5 — VERIFY + TROUBLESHOOT
+  ═══════════════════════════════════════ -->
+  <div class="phase" id="phase5">
+    <div class="phase-hd">
+      <div class="phase-num">5</div>
+      <div class="phase-title">Verify it is <em>live</em> + troubleshoot</div>
+      <div class="phase-meta">⏱ ~1 min</div>
+    </div>
+    <div class="phase-body">
+
+      <div class="step">
+        <div class="step-n">5.1</div>
+        <div>
+          <div class="step-title">Confirm Pages is enabled in repo settings</div>
+          <div class="step-desc">
+            Go to your repo → Settings → Pages (left sidebar). It should show:
+          </div>
+          <div class="screen-frame" style="margin-top:12px">
+            <div class="frame-bar">
+              <div class="frame-dot" style="background:#FF5F56"></div>
+              <div class="frame-dot" style="background:#FFBD2E;margin-left:6px"></div>
+              <div class="frame-dot" style="background:#27C93F;margin-left:6px"></div>
+              <div class="frame-url">github.com/digitalyticsagency/vector-pro/settings/pages</div>
+            </div>
+            <div class="frame-body">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(53,255,144,.05);border:1px solid rgba(53,255,144,.2);border-radius:5px">
+                <div style="font-size:20px">✅</div>
+                <div>
+                  <div style="font-weight:600;margin-bottom:4px">Your site is live at</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--teal)">https://digitalyticsagency.github.io/vector-pro/</div>
+                </div>
+              </div>
+              <div style="margin-top:14px;font-size:13px;color:var(--ink2)">
+                Source: Deploy from a branch — <span style="color:var(--teal)">main</span> / (root)
+              </div>
+            </div>
+          </div>
+          <div class="note" style="margin-top:10px">
+            <div class="note-icon">ℹ</div>
+            <div>If Pages is not enabled, scroll down on this settings page to the <b>GitHub Pages</b> section, set Source to <b>Deploy from a branch</b>, select <b>main</b> branch and <b>/ (root)</b>, then Save.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">5.2</div>
+        <div>
+          <div class="step-title">Open the live URLs</div>
+          <div class="step-desc">Two URLs are deployed:</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+            <div class="url-badge" style="font-size:13px">
+              https://digitalyticsagency.github.io/vector-pro/
+              <span style="color:var(--ink2);margin-left:8px;font-size:10px">← VECTOR PRO tracking app</span>
+            </div>
+            <div class="url-badge" style="font-size:13px">
+              https://digitalyticsagency.github.io/vector-pro/landing.html
+              <span style="color:var(--ink2);margin-left:8px;font-size:10px">← Beautiful landing page</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">5.3</div>
+        <div>
+          <div class="step-title">Troubleshooting common issues</div>
+          <div class="step-desc"></div>
+          <div class="codeblock" style="margin-top:10px">
+<span class="y">PROBLEM</span>: Camera blocked / not starting
+<span class="g">FIX</span>: Must use HTTPS URL. file:// and http:// block camera.
+      Open https://digitalyticsagency.github.io/vector-pro/
+
+<span class="y">PROBLEM</span>: "Init Repo" returns 404
+<span class="g">FIX</span>: Repo does not exist yet. Do Phase 2 first, then retry.
+
+<span class="y">PROBLEM</span>: "Init Repo" returns 409 Conflict on SHA
+<span class="g">FIX</span>: File already exists, app will fetch its SHA and update it.
+      Wait 5s and tap Deploy Update instead.
+
+<span class="y">PROBLEM</span>: Token rejected (401 Unauthorized)
+<span class="g">FIX</span>: Wrong token type. Must be CLASSIC token, not fine-grained.
+      Go to github.com/settings/tokens and check the token type.
+
+<span class="y">PROBLEM</span>: Actions workflow fails (Error: Resource not accessible)
+<span class="g">FIX</span>: Token missing workflow scope. Create a new token with
+      both repo + workflow checked.
+
+<span class="y">PROBLEM</span>: URL shows 404 after deploy
+<span class="g">FIX</span>: Wait 60-90 seconds. Pages needs time to build.
+      Check Actions tab for build status.
+
+<span class="y">PROBLEM</span>: YOLOv8n fails to load (black screen after start)
+<span class="g">FIX</span>: Model (~6.7MB) needs network. On slow connections it
+      times out and falls back to MediaPipe automatically.
+      Check the ENGINE stat in the top bar — MP-GPU is fine.
+
+<span class="y">PROBLEM</span>: iPhone rear camera not activating
+<span class="g">FIX</span>: Must open from Home Screen (Add to Home Screen first).
+      In Safari without Home Screen, it defaults to front camera.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">5.4</div>
+        <div>
+          <div class="step-title">Update the deployed app any time</div>
+          <div class="step-desc">
+            Whenever you want to push a new version, open VECTOR PRO locally, scroll to <b>GitHub Deploy</b>, and tap <b>Deploy Update</b>. It pushes the current <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal)">index.html</code> and the Actions workflow deploys it automatically within ~60 seconds.
+          </div>
+          <div class="codeblock" style="margin-top:10px">
+<span class="c"># No terminal needed. Just:</span>
+1. Open http://localhost:8080 in browser
+2. Scroll to GitHub Deploy panel
+3. Tap <span class="k">Deploy Update</span>
+4. Wait ~60s
+5. Refresh your GitHub Pages URL ✓
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="divider"></div>
+  <div class="summary">
+    <div class="summary-hd">Complete — what you now have</div>
+    <div class="summary-body">
+      <div class="sumrow">
+        <div class="sumrow-n">✓</div>
+        <div class="sumrow-text"><b>GitHub classic token</b> with <code>repo</code> + <code>workflow</code> scopes</div>
+      </div>
+      <div class="sumrow">
+        <div class="sumrow-n">✓</div>
+        <div class="sumrow-text"><b>Public GitHub repo</b> at <code>digitalyticsagency/vector-pro</code></div>
+      </div>
+      <div class="sumrow">
+        <div class="sumrow-n">✓</div>
+        <div class="sumrow-text"><b>VECTOR PRO app</b> live at <code>digitalyticsagency.github.io/vector-pro/</code></div>
+      </div>
+      <div class="sumrow">
+        <div class="sumrow-n">✓</div>
+        <div class="sumrow-text"><b>Landing page</b> live at <code>digitalyticsagency.github.io/vector-pro/landing.html</code></div>
+      </div>
+      <div class="sumrow">
+        <div class="sumrow-n">✓</div>
+        <div class="sumrow-text"><b>iPhone</b> — Add to Home Screen → fullscreen + rear camera + optical zoom</div>
+      </div>
+      <div class="sumrow">
+        <div class="sumrow-n">✓</div>
+        <div class="sumrow-text"><b>MacBook</b> — <code>http://localhost:8080</code> or the GitHub Pages URL</div>
+      </div>
+      <div class="sumrow">
+        <div class="sumrow-n">✓</div>
+        <div class="sumrow-text"><b>Auto-deploy on push</b> — GitHub Actions workflow runs on every commit to main</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="deploy-result" style="margin-top:32px">
+    <div class="deploy-result-icon">🚀</div>
+    <div style="margin-bottom:10px;font-size:14px;color:var(--ink2)">Your live URL</div>
+    <a class="deploy-result-url" href="https://digitalyticsagency.github.io/vector-pro/" target="_blank">
+      https://digitalyticsagency.github.io/vector-pro/
+    </a>
+    <div class="deploy-result-note">Share this URL with anyone. Open it on iPhone, MacBook, or any modern browser with camera access.</div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// Highlight active section on scroll
+const phases = document.querySelectorAll('.phase');
+const pills = document.querySelectorAll('.pb-step');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id;
+      pills.forEach(p => {
+        p.classList.toggle('active', p.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { threshold: 0.3 });
+phases.forEach(p => obs.observe(p));
+</script>
+
+</body>
+</html>
