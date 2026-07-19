@@ -1,16 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
-<meta name="theme-color" content="#070A0F"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#070A0F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>VECTOR PRO — Advanced Object Tracking</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23070A0F'/%3E%3Cpath d='M4 4h10v2H6v8H4zm14 0h10v10h-2V6H18zm10 14v10H18v-2h8V18zM4 18h2v8h8v2H4z' fill='%2300E5C8'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23FF6030'/%3E%3C/svg%3E"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23070A0F'/%3E%3Cpath d='M4 4h10v2H6v8H4zm14 0h10v10h-2V6H18zm10 14v10H18v-2h8V18zM4 18h2v8h8v2H4z' fill='%2300E5C8'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23FF6030'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#070A0F; --bg2:#0C1018; --bg3:#111820;
@@ -238,7 +236,7 @@ input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
   .analytics-bar{right:8px;bottom:8px}
 }
 </style>
-</head>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script></head>
 <body>
 <div class="app">
 
@@ -247,12 +245,12 @@ input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
   <div class="logo">VECTOR<sub>PRO</sub></div>
   <div class="sep"></div>
   <div class="stats">
-    <div class="stat"><div class="slbl">FPS</div><div class="sval" id="sFps">—</div></div>
-    <div class="stat"><div class="slbl">INFER</div><div class="sval" id="sInfer">—</div></div>
-    <div class="stat"><div class="slbl">TRACKS</div><div class="sval teal" id="sTracks">0</div></div>
+    <div class="stat"><div class="slbl">FPS</div><div class="sval ok" id="sFps">29</div></div>
+    <div class="stat"><div class="slbl">INFER</div><div class="sval" id="sInfer">30ms</div></div>
+    <div class="stat"><div class="slbl">TRACKS</div><div class="sval teal" id="sTracks">1</div></div>
     <div class="stat"><div class="slbl">MAX SPD</div><div class="sval orange" id="sSpeed">—</div></div>
-    <div class="stat"><div class="slbl">ENGINE</div><div class="sval" id="sEngine">—</div></div>
-    <div class="stat"><div class="slbl">SOURCE</div><div class="sval" id="sRes">—</div></div>
+    <div class="stat"><div class="slbl">ENGINE</div><div class="sval" id="sEngine">MEDIAPIPE</div></div>
+    <div class="stat"><div class="slbl">SOURCE</div><div class="sval" id="sRes">1280x720 @30</div></div>
   </div>
   <div class="bar-right">
     <div class="pill" id="pLock"><span class="dot"></span><span id="pLockTxt">NO LOCK</span></div>
@@ -266,16 +264,16 @@ input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
 
   <!-- STAGE -->
   <div class="stage">
-    <div class="vp-wrap" id="vpWrap">
-      <video id="video" playsinline autoplay muted></video>
-      <canvas id="cvHeat"></canvas>
-      <canvas id="cvMain"></canvas>
-      <div class="idle-screen" id="idleScreen">
+    <div class="vp-wrap mirror-on" id="vpWrap" style="aspect-ratio: 1280 / 720;">
+      <video id="video" playsinline="" autoplay="" muted=""></video>
+      <canvas id="cvHeat" width="1280" height="720"></canvas>
+      <canvas id="cvMain" width="1280" height="720"></canvas>
+      <div class="idle-screen" id="idleScreen" style="display: none;">
         <div class="idle-inner">
           <div class="idle-icon">◎</div>
           <div class="idle-title">VECTOR PRO</div>
           <div class="idle-sub">YOLOv8n · ByteTrack · Speed estimation · Counting lines · Heatmap · Zone alerts · Persistent Re-ID · Drone guidance · GitHub deploy</div>
-          <button class="btn btn-p" id="bootBtn" style="max-width:200px;margin:0 auto;display:block">▶ Start Camera</button>
+          <button class="btn btn-p" id="bootBtn" style="max-width:200px;margin:0 auto;display:block" disabled="">▶ Start Camera</button>
           <div class="https-warn" id="httpsWarn" style="display:none">⚠ Camera blocked on file://. Serve via http://localhost or deploy to GitHub Pages.</div>
         </div>
       </div>
@@ -283,7 +281,7 @@ input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
     </div>
 
     <!-- Draw toolbar -->
-    <div class="draw-toolbar" id="drawToolbar" style="display:none">
+    <div class="draw-toolbar" id="drawToolbar" style="display: flex;">
       <button class="dt-btn active" id="dtSelect">✜ SELECT</button>
       <button class="dt-btn" id="dtLine">╱ LINE</button>
       <button class="dt-btn" id="dtZone">▭ ZONE</button>
@@ -292,11 +290,11 @@ input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
 
     <!-- Analytics strip -->
     <div class="analytics-bar">
-      <div class="abchip"><span>OBJECTS</span><b id="abObj">0</b></div>
+      <div class="abchip"><span>OBJECTS</span><b id="abObj">1</b></div>
       <div class="abchip o"><span>MAX SPD</span><b id="abSpd">—</b></div>
       <div class="abchip g"><span>IN/OUT</span><b id="abCross">0/0</b></div>
       <div class="abchip"><span>ZONES</span><b id="abZone">0</b></div>
-      <div class="abchip"><span>RE-IDs</span><b id="abReid">0</b></div>
+      <div class="abchip"><span>RE-IDs</span><b id="abReid">1</b></div>
     </div>
   </div>
 
@@ -305,49 +303,49 @@ input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
 
     <!-- SENSOR -->
     <div class="sec">
-      <div class="sec-hd">Sensor <em id="engineTag">—</em></div>
+      <div class="sec-hd">Sensor <em id="engineTag">efficientdet-lite0</em></div>
       <div class="row">
-        <button class="btn btn-p" id="startBtn">▶ Start Camera</button>
+        <button class="btn btn-p" id="startBtn">■ Stop</button>
         <button class="btn btn-g btn-sm" id="snapBtn" style="flex:0 0 auto">SNAP</button>
       </div>
       <div class="fld"><div class="flbl">Camera</div>
-        <select id="devSel"><option value="">— start camera to enumerate —</option></select></div>
+        <select id="devSel"><option value="c679fc7109b470367efb70a10b017856ce88a0693e7bbb87176adbc364916bd3" selected="">MacBook Pro Camera (0000:0001)</option></select></div>
       <div class="fld"><div class="flbl">Resolution (max quality)</div>
         <select id="resSel">
           <option value="3840x2160">4K UHD — 3840×2160</option>
           <option value="2560x1440">QHD — 2560×1440</option>
-          <option value="1920x1080" selected>FHD — 1920×1080 ✓</option>
+          <option value="1920x1080" selected="">FHD — 1920×1080 ✓</option>
           <option value="1280x720">HD — 1280×720 (fastest)</option>
         </select></div>
       <div class="fld" id="zoomWrap" style="display:none">
         <div class="flbl">Optical Zoom <b id="zoomVal">1.0×</b></div>
-        <input type="range" id="zoomRange" min="1" max="5" step="0.1" value="1"/></div>
-      <label class="chk"><input type="checkbox" id="mirrorChk" checked> Mirror preview</label>
+        <input type="range" id="zoomRange" min="1" max="5" step="0.1" value="1"></div>
+      <label class="chk"><input type="checkbox" id="mirrorChk" checked=""> Mirror preview</label>
       <label class="chk" id="torchWrap" style="display:none"><input type="checkbox" id="torchChk"> Torch</label>
     </div>
 
     <!-- DETECTOR -->
     <div class="sec">
-      <div class="sec-hd">Detector <em id="detTag">—</em></div>
-      <div class="fld"><div class="flbl">Confidence <b id="confVal">0.40</b></div>
-        <input type="range" id="confRange" min="0.1" max="0.9" step="0.05" value="0.40"/></div>
+      <div class="sec-hd">Detector <em id="detTag">MediaPipe</em></div>
+      <div class="fld"><div class="flbl">Confidence <b id="confVal">0.70</b></div>
+        <input type="range" id="confRange" min="0.1" max="0.9" step="0.05" value="0.40"></div>
       <div class="fld"><div class="flbl">Detect every <b id="strideVal">1</b> frame(s)</div>
-        <input type="range" id="strideRange" min="1" max="6" step="1" value="1"/></div>
-      <div class="fld"><div class="flbl">Track memory <b id="missVal">18</b> frames</div>
-        <input type="range" id="missRange" min="3" max="60" step="1" value="18"/></div>
-      <label class="chk"><input type="checkbox" id="trailChk" checked> Motion trails</label>
-      <label class="chk"><input type="checkbox" id="vecChk" checked> Velocity vectors</label>
-      <label class="chk"><input type="checkbox" id="speedChk" checked> Speed labels (km/h)</label>
+        <input type="range" id="strideRange" min="1" max="6" step="1" value="1"></div>
+      <div class="fld"><div class="flbl">Track memory <b id="missVal">57</b> frames</div>
+        <input type="range" id="missRange" min="3" max="60" step="1" value="18"></div>
+      <label class="chk"><input type="checkbox" id="trailChk" checked=""> Motion trails</label>
+      <label class="chk"><input type="checkbox" id="vecChk" checked=""> Velocity vectors</label>
+      <label class="chk"><input type="checkbox" id="speedChk" checked=""> Speed labels (km/h)</label>
     </div>
 
     <!-- RE-ID -->
     <div class="sec">
-      <div class="sec-hd">Persistent Re-ID <em id="reidTag">ON · 0 · 0 held</em></div>
-      <label class="chk"><input type="checkbox" id="reidChk" checked> Re-identify departed targets</label>
+      <div class="sec-hd">Persistent Re-ID <em id="reidTag">ON · 1 · 0 held</em></div>
+      <label class="chk"><input type="checkbox" id="reidChk" checked=""> Re-identify departed targets</label>
       <div class="fld" style="margin-top:8px"><div class="flbl">Memory <b id="reidMemVal">20</b>s</div>
-        <input type="range" id="reidMemRange" min="3" max="120" step="1" value="20"/></div>
+        <input type="range" id="reidMemRange" min="3" max="120" step="1" value="20"></div>
       <div class="fld"><div class="flbl">Strictness <b id="reidThreshVal">0.50</b></div>
-        <input type="range" id="reidThreshRange" min="0.2" max="0.9" step="0.02" value="0.50"/></div>
+        <input type="range" id="reidThreshRange" min="0.2" max="0.9" step="0.02" value="0.50"></div>
       <div class="hint">Lock survives frame exit → enters <b>REACQUIRING</b> state until target returns.</div>
     </div>
 
@@ -370,7 +368,7 @@ input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
     <!-- CLASS FILTER -->
     <div class="sec">
       <div class="sec-hd">Class Filter <em id="filterTag">all</em></div>
-      <div class="chips" id="chips"><div class="empty">Classes appear as objects are detected.</div></div>
+      <div class="chips" id="chips"><button class="chip" data-c="chair">chair</button><button class="chip" data-c="person">person</button><button class="chip" data-c="tie">tie</button><button class="chip" data-c="vase">vase</button></div>
       <div class="row" style="margin-top:8px">
         <button class="btn btn-g btn-sm" id="clearFilterBtn">Clear filter</button>
       </div>
@@ -378,8 +376,14 @@ input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
 
     <!-- TRACKS -->
     <div class="sec">
-      <div class="sec-hd">Live Tracks <em id="trackCount">0</em></div>
-      <div class="trk-list" id="trackList"><div class="empty">No objects tracked.</div></div>
+      <div class="sec-hd">Live Tracks <em id="trackCount">1</em></div>
+      <div class="trk-list" id="trackList"><div class="trk" data-id="1">
+      <div class="trk-sw" style="background:hsl(213,80%,62%)"></div>
+      <div class="trk-inf"><span class="trk-cls">person</span>
+        <span class="trk-meta">ID 1 · — · 16px/s</span></div>
+      <span class="trk-sc">76%</span>
+      <button class="trk-lbtn">LOCK</button>
+    </div></div>
       <div class="row" style="margin-top:8px">
         <button class="btn btn-g btn-sm" id="autoLockBtn">Auto-lock</button>
         <button class="btn btn-g btn-sm" id="unlockBtn">Unlock</button>
@@ -392,7 +396,7 @@ input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
       <div class="telem">
         <div class="tl"><span>TARGET</span><b class="dim" id="tTarget">—</b></div>
         <div class="tl"><span>SPEED</span><b class="teal" id="tSpeed">—</b></div>
-        <div class="tl"><span>ERR X/Y</span><b id="tErr">0.000 / 0.000</b></div>
+        <div class="tl"><span>ERR X/Y</span><b id="tErr">—</b></div>
         <div class="tl"><span>RANGE</span><b id="tRange">—</b></div>
         <div class="tl"><span>BEAR/ELEV</span><b id="tBear">—</b></div>
         <div class="tldiv"></div>
@@ -401,32 +405,32 @@ input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
         <div class="tl"><span>FWD_VEL</span><b class="o" id="tFwd">0.00</b></div>
       </div>
       <div class="cmdbars">
-        <div><div class="cblbl">YAW <b id="bYawV">0.00</b></div><div class="cbtrack"><div class="cbfill" id="bYaw"></div></div></div>
-        <div><div class="cblbl">PITCH <b id="bPitchV">0.00</b></div><div class="cbtrack"><div class="cbfill" id="bPitch"></div></div></div>
-        <div><div class="cblbl">FWD <b id="bFwdV">0.00</b></div><div class="cbtrack"><div class="cbfill" id="bFwd"></div></div></div>
+        <div><div class="cblbl">YAW <b id="bYawV">0.00</b></div><div class="cbtrack"><div class="cbfill" id="bYaw" style="left: 50%; width: 0px;"></div></div></div>
+        <div><div class="cblbl">PITCH <b id="bPitchV">0.00</b></div><div class="cbtrack"><div class="cbfill" id="bPitch" style="left: 50%; width: 0px;"></div></div></div>
+        <div><div class="cblbl">FWD <b id="bFwdV">0.00</b></div><div class="cbtrack"><div class="cbfill" id="bFwd" style="left: 50%; width: 0px;"></div></div></div>
       </div>
       <div class="fld" style="margin-top:12px"><div class="flbl">Gain Kp <b id="kpVal">1.20</b></div>
-        <input type="range" id="kpRange" min="0.2" max="3" step="0.1" value="1.2"/></div>
+        <input type="range" id="kpRange" min="0.2" max="3" step="0.1" value="1.2"></div>
       <div class="fld"><div class="flbl">Standoff <b id="soVal">4.0m</b></div>
-        <input type="range" id="soRange" min="0.5" max="25" step="0.5" value="4"/></div>
+        <input type="range" id="soRange" min="0.5" max="25" step="0.5" value="4"></div>
       <div class="fld"><div class="flbl">Horiz FOV <b id="fovVal">65°</b></div>
-        <input type="range" id="fovRange" min="30" max="150" step="1" value="65"/></div>
+        <input type="range" id="fovRange" min="30" max="150" step="1" value="65"></div>
     </div>
 
     <!-- GITHUB -->
     <div class="sec">
       <div class="sec-hd">GitHub Deploy <em id="ghTag">not configured</em></div>
       <div class="flbl" style="margin-bottom:4px">GitHub Username</div>
-      <input class="gh-inp" type="text" id="ghUser" placeholder="your-github-username"/>
+      <input class="gh-inp" type="text" id="ghUser" placeholder="your-github-username">
       <div class="flbl" style="margin-bottom:4px">Repository name</div>
-      <input class="gh-inp" type="text" id="ghRepo" placeholder="vector-pro"/>
+      <input class="gh-inp" type="text" id="ghRepo" placeholder="vector-pro">
       <div class="flbl" style="margin-bottom:4px">Classic token (repo + workflow scope)</div>
-      <input class="gh-inp" type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx" autocomplete="new-password"/>
+      <input class="gh-inp" type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx" autocomplete="new-password" aria-autocomplete="list">
       <div class="row" style="margin-top:8px">
         <button class="btn btn-g btn-sm" id="ghInitBtn">Init Repo</button>
         <button class="btn btn-g btn-sm" id="ghDeployBtn">Deploy Update</button>
       </div>
-      <div class="gh-status" id="ghStatus">Enter credentials then Init Repo to push to GitHub Pages.</div>
+      <div class="gh-status" id="ghStatus">Checking repo…</div>
       <div class="hint" style="margin-top:8px">Token: <b>Settings → Developer settings → Tokens (classic)</b><br>Scopes needed: <b>repo</b> + <b>workflow</b></div>
     </div>
 
@@ -434,7 +438,7 @@ input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
     <div class="sec">
       <div class="sec-hd">Drone Bridge</div>
       <div class="fld"><div class="flbl">WebSocket URL</div>
-        <input type="text" id="wsUrl" value="ws://localhost:8765" spellcheck="false"/></div>
+        <input type="text" id="wsUrl" value="ws://localhost:8765" spellcheck="false"></div>
       <div class="row">
         <button class="btn btn-g btn-sm" id="linkBtn">Connect</button>
         <button class="btn btn-g btn-sm" id="recBtn">Record</button>
@@ -450,7 +454,7 @@ input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
 </div><!-- /main -->
 </div><!-- /app -->
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast">Re-identified chair #2</div>
 
 <script type="module">
 /* ============================================================================
@@ -1619,5 +1623,5 @@ function wire(){
 wire();
 window.__VP={S,Tracker,Perception,Analytics,guidance,setLock,autoLock,boot};
 </script>
-</body>
-</html>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm/vision_wasm_internal.js" crossorigin="anonymous"></script></body></html>
