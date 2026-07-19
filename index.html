@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<meta name="theme-color" content="#070A0F"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>VECTOR PRO — Advanced Object Tracking</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23070A0F'/%3E%3Cpath d='M4 4h10v2H6v8H4zm14 0h10v10h-2V6H18zm10 14v10H18v-2h8V18zM4 18h2v8h8v2H4z' fill='%2300E5C8'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23FF6030'/%3E%3C/svg%3E"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#070A0F; --bg2:#0C1018; --bg3:#111820;
+  --panel:#131B28; --panel2:#192234;
+  --bdr:#1C2940; --bdr2:#28394F;
+  --ink:#E6EDF8; --ink2:#8899BB; --ink3:#485870;
+  --teal:#00E5C8; --orange:#FF6030; --yellow:#FFD060;
+  --red:#FF3355; --green:#35FF90; --purple:#9B6BFF; --blue:#3B9EFF;
+  --grid:rgba(0,229,200,.04);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Rajdhani',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;letter-spacing:.3px}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:52px 52px;
+  mask-image:radial-gradient(ellipse at 50% 35%,#000 25%,transparent 75%);
+  -webkit-mask-image:radial-gradient(ellipse at 50% 35%,#000 25%,transparent 75%)}
+
+.app{position:relative;z-index:1;height:100dvh;display:flex;flex-direction:column}
+
+/* TOP BAR */
+.topbar{display:flex;align-items:center;gap:14px;padding:8px 16px;
+  background:rgba(7,10,15,.92);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--bdr);flex:0 0 auto;z-index:20}
+.logo{display:flex;align-items:baseline;gap:8px;font-weight:700;font-size:20px;
+  letter-spacing:3.5px;color:var(--teal);text-shadow:0 0 18px rgba(0,229,200,.35)}
+.logo sub{font-size:10px;color:var(--orange);letter-spacing:1.5px;font-weight:700;margin-bottom:2px}
+.sep{width:1px;height:28px;background:var(--bdr2)}
+.stats{display:flex;gap:18px}
+.stat{display:flex;flex-direction:column;gap:1px}
+.slbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ink3);letter-spacing:1.5px;text-transform:uppercase}
+.sval{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--ink)}
+.sval.ok{color:var(--green)}.sval.warn{color:var(--yellow)}.sval.bad{color:var(--red)}
+.sval.teal{color:var(--teal)}.sval.orange{color:var(--orange)}
+.bar-right{margin-left:auto;display:flex;align-items:center;gap:9px}
+.pill{display:inline-flex;align-items:center;gap:7px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;
+  color:var(--ink2);padding:6px 12px;border:1px solid var(--bdr2);border-radius:4px;background:var(--panel)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ink3);transition:all .3s}
+.pill.active .dot{background:var(--teal);box-shadow:0 0 10px var(--teal)}
+.pill.locked .dot{background:var(--orange);box-shadow:0 0 10px var(--orange)}
+.pill.reacq .dot{background:var(--red);box-shadow:0 0 10px var(--red);animation:blink .7s steps(2) infinite}
+.pill.linked .dot{background:var(--green);box-shadow:0 0 10px var(--green)}
+@keyframes blink{50%{opacity:.2}}
+
+/* LAYOUT */
+.main{flex:1;display:grid;grid-template-columns:1fr 318px;min-height:0}
+.stage{position:relative;display:flex;align-items:center;justify-content:center;padding:14px;overflow:hidden;min-height:0}
+
+/* VIEWPORT */
+.vp-wrap{position:relative;max-width:100%;max-height:100%;
+  border:1px solid var(--bdr2);border-radius:8px;overflow:hidden;background:#020408;
+  box-shadow:0 0 0 1px rgba(0,229,200,.07),0 20px 60px rgba(0,0,0,.7)}
+.vp-wrap.mirror-on{transform:scaleX(-1)}
+.vp-wrap video{display:block;width:100%;height:100%;object-fit:contain;background:#020408}
+.vp-wrap canvas{position:absolute;inset:0;width:100%;height:100%}
+#cvHeat{pointer-events:none;opacity:.55;mix-blend-mode:screen}
+#cvMain{cursor:crosshair}
+.vp-wrap::before,.vp-wrap::after{content:'';position:absolute;z-index:10;pointer-events:none;
+  width:18px;height:18px;border-color:var(--teal);border-style:solid;opacity:.5}
+.vp-wrap::before{top:8px;left:8px;border-width:2px 0 0 2px}
+.vp-wrap::after{bottom:8px;right:8px;border-width:0 2px 2px 0}
+
+.idle-screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(7,10,15,.92);backdrop-filter:blur(8px);z-index:5}
+.idle-inner{text-align:center;max-width:380px;padding:24px}
+.idle-icon{font-size:46px;margin-bottom:14px;opacity:.4}
+.idle-title{font-size:26px;font-weight:700;color:var(--teal);margin-bottom:8px;letter-spacing:3px}
+.idle-sub{color:var(--ink2);font-size:14px;line-height:1.65;margin-bottom:22px}
+.https-warn{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--yellow);
+  border:1px solid rgba(255,208,96,.2);background:rgba(255,208,96,.05);
+  padding:9px 12px;border-radius:4px;margin-top:14px;text-align:left;line-height:1.6}
+.loadbar{position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--bdr);overflow:hidden;display:none;z-index:10}
+.loadbar.on{display:block}
+.loadbar i{display:block;height:100%;width:30%;background:var(--teal);
+  animation:lslide 1s ease-in-out infinite;box-shadow:0 0 8px var(--teal)}
+@keyframes lslide{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}
+
+/* DRAW TOOLBAR */
+.draw-toolbar{position:absolute;top:22px;left:50%;transform:translateX(-50%);
+  display:flex;gap:5px;z-index:20;background:rgba(7,10,15,.9);
+  border:1px solid var(--bdr2);border-radius:5px;padding:4px;backdrop-filter:blur(12px)}
+.dt-btn{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.5px;
+  padding:5px 10px;border-radius:3px;border:1px solid transparent;
+  background:transparent;color:var(--ink2);cursor:pointer;transition:all .15s}
+.dt-btn:hover{color:var(--ink);background:var(--panel2)}
+.dt-btn.active{background:rgba(0,229,200,.1);border-color:var(--teal);color:var(--teal)}
+.dt-btn.red{color:var(--red)}
+.dt-btn.red:hover{background:rgba(255,51,85,.1)}
+
+/* ANALYTICS BAR */
+.analytics-bar{position:absolute;bottom:14px;left:14px;right:333px;
+  display:flex;gap:7px;z-index:15;pointer-events:none;flex-wrap:wrap}
+.abchip{background:rgba(7,10,15,.88);border:1px solid var(--bdr2);border-radius:3px;
+  padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink2);
+  display:flex;gap:6px;align-items:center;backdrop-filter:blur(8px)}
+.abchip b{color:var(--teal);font-weight:700}
+.abchip.o b{color:var(--orange)}.abchip.g b{color:var(--green)}
+
+/* SIDE PANEL */
+.side{border-left:1px solid var(--bdr);background:var(--bg2);
+  display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+.side::-webkit-scrollbar{width:5px}
+.side::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+.sec{border-bottom:1px solid var(--bdr);padding:12px 13px 14px}
+.sec-hd{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--ink3);margin-bottom:11px;
+  display:flex;align-items:center;justify-content:space-between}
+.sec-hd em{font-style:normal;color:var(--teal);font-size:9px}
+.sec-hd em.o{color:var(--orange)}
+
+/* Buttons */
+.btn{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:14px;letter-spacing:.8px;
+  padding:9px 12px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all .15s;flex:1}
+.btn-p{background:var(--teal);color:#021018}
+.btn-p:hover:not(:disabled){filter:brightness(1.1);box-shadow:0 0 16px rgba(0,229,200,.3)}
+.btn-g{background:transparent;color:var(--ink);border-color:var(--bdr2)}
+.btn-g:hover:not(:disabled){background:var(--panel2);border-color:var(--teal);color:var(--teal)}
+.btn-d{background:transparent;color:var(--red);border-color:rgba(255,51,85,.3)}
+.btn-d:hover:not(:disabled){background:rgba(255,51,85,.1)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-sm{font-size:11px;padding:5px 9px}
+.row{display:flex;gap:7px;margin-bottom:8px}
+.row:last-child{margin-bottom:0}
+
+/* Fields */
+.fld{display:block;margin-bottom:9px}
+.fld:last-child{margin-bottom:0}
+.flbl{display:flex;justify-content:space-between;align-items:center;
+  font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3);
+  letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.flbl b{color:var(--teal);font-weight:700}
+select,input[type=text],input[type=password]{width:100%;padding:7px 9px;border-radius:4px;
+  background:var(--panel);border:1px solid var(--bdr2);color:var(--ink);
+  font-family:'JetBrains Mono',monospace;font-size:11px}
+select:focus,input:focus{outline:none;border-color:var(--teal)}
+input[type=range]{width:100%;accent-color:var(--teal);background:transparent}
+.chk{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--ink2);padding:5px 0;user-select:none}
+.chk input{accent-color:var(--teal);width:14px;height:14px;cursor:pointer}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:5px;max-height:100px;overflow-y:auto}
+.chip{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px;border-radius:3px;
+  cursor:pointer;background:var(--panel);border:1px solid var(--bdr);color:var(--ink3);transition:all .15s}
+.chip:hover{border-color:var(--bdr2);color:var(--ink2)}
+.chip.on{background:rgba(0,229,200,.09);border-color:var(--teal);color:var(--teal)}
+
+/* Track list */
+.trk-list{display:flex;flex-direction:column;gap:5px;max-height:175px;overflow-y:auto}
+.trk{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:4px;cursor:pointer;
+  background:var(--panel);border:1px solid var(--bdr);transition:all .15s}
+.trk:hover{border-color:var(--bdr2)}
+.trk.locked{border-color:var(--orange);background:rgba(255,96,48,.07)}
+.trk-sw{width:3px;height:28px;border-radius:2px;flex:0 0 3px}
+.trk-inf{flex:1;min-width:0}
+.trk-cls{display:block;font-size:13px;font-weight:600;text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trk-meta{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3)}
+.trk-sc{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink2)}
+.trk-lbtn{font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 6px;
+  border-radius:3px;border:1px solid var(--bdr2);background:transparent;color:var(--ink3);cursor:pointer}
+.trk.locked .trk-lbtn{border-color:var(--orange);color:var(--orange)}
+.empty{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink3);padding:4px 0;line-height:1.7}
+
+/* Telemetry */
+.telem{font-family:'JetBrains Mono',monospace;font-size:10px;
+  background:rgba(2,4,8,.8);border:1px solid var(--bdr);border-radius:5px;padding:10px}
+.tl{display:flex;justify-content:space-between;padding:2.5px 0;color:var(--ink3)}
+.tl b{color:var(--ink);font-weight:500}
+.tl b.teal{color:var(--teal)}.tl b.o{color:var(--orange)}.tl b.dim{color:var(--ink3)}
+.tldiv{height:1px;background:var(--bdr);margin:7px 0}
+.cmdbars{display:flex;flex-direction:column;gap:6px;margin-top:9px}
+.cblbl{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3);margin-bottom:2px}
+.cblbl b{color:var(--orange)}
+.cbtrack{position:relative;height:5px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.cbtrack::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--bdr2)}
+.cbfill{position:absolute;top:0;bottom:0;border-radius:3px;transition:all .1s linear}
+
+.hint{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink3);line-height:1.65;margin-top:9px}
+.hint kbd{background:var(--panel2);border:1px solid var(--bdr2);border-radius:3px;padding:1px 5px;color:var(--ink2);font-size:9px}
+.hint b{color:var(--yellow)}
+
+/* Lines / Zones */
+.ln-list,.zn-list{display:flex;flex-direction:column;gap:4px;max-height:80px;overflow-y:auto;margin-bottom:7px}
+.ln-item,.zn-item{display:flex;align-items:center;gap:7px;padding:4px 7px;
+  background:var(--panel);border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink2)}
+.lncolor{width:14px;height:3px;border-radius:2px;flex:0 0 14px}
+.lncounts{margin-left:auto;color:var(--teal)}
+.zncolor{width:10px;height:10px;border-radius:2px;flex:0 0 10px;opacity:.7}
+.zncount{margin-left:auto;color:var(--orange)}
+.delbtn{background:none;border:none;color:var(--red);cursor:pointer;font-size:11px;padding:0 2px;opacity:.6}
+.delbtn:hover{opacity:1}
+
+/* Overlay toggles */
+.ov-btns{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+.ovbtn{font-family:'JetBrains Mono',monospace;font-size:9px;padding:4px 8px;
+  border-radius:3px;border:1px solid var(--bdr);background:var(--panel);
+  color:var(--ink3);cursor:pointer;transition:all .15s}
+.ovbtn.on{border-color:var(--teal);color:var(--teal);background:rgba(0,229,200,.08)}
+
+/* GitHub */
+.gh-inp{width:100%;padding:7px 9px;border-radius:4px;
+  background:var(--panel);border:1px solid var(--bdr2);color:var(--ink);
+  font-family:'JetBrains Mono',monospace;font-size:11px;margin-bottom:7px}
+.gh-inp:focus{outline:none;border-color:var(--teal)}
+.gh-status{font-family:'JetBrains Mono',monospace;font-size:9px;
+  padding:8px 10px;border-radius:4px;margin-top:7px;
+  background:var(--panel);border:1px solid var(--bdr);color:var(--ink2);line-height:1.6;white-space:pre-line}
+.gh-status.ok{border-color:rgba(53,255,144,.3);color:var(--green)}
+.gh-status.err{border-color:rgba(255,51,85,.3);color:var(--red)}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(12px);
+  background:var(--panel2);border:1px solid var(--bdr2);color:var(--ink);
+  padding:9px 18px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  z-index:999;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:860px){
+  .main{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .side{border-left:none;border-top:1px solid var(--bdr);max-height:48vh}
+  .stage{padding:8px}
+  .stats{display:none}
+  .analytics-bar{right:8px;bottom:8px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">VECTOR<sub>PRO</sub></div>
+  <div class="sep"></div>
+  <div class="stats">
+    <div class="stat"><div class="slbl">FPS</div><div class="sval" id="sFps">—</div></div>
+    <div class="stat"><div class="slbl">INFER</div><div class="sval" id="sInfer">—</div></div>
+    <div class="stat"><div class="slbl">TRACKS</div><div class="sval teal" id="sTracks">0</div></div>
+    <div class="stat"><div class="slbl">MAX SPD</div><div class="sval orange" id="sSpeed">—</div></div>
+    <div class="stat"><div class="slbl">ENGINE</div><div class="sval" id="sEngine">—</div></div>
+    <div class="stat"><div class="slbl">SOURCE</div><div class="sval" id="sRes">—</div></div>
+  </div>
+  <div class="bar-right">
+    <div class="pill" id="pLock"><span class="dot"></span><span id="pLockTxt">NO LOCK</span></div>
+    <div class="pill" id="pGH"><span class="dot"></span><span id="pGHTxt">GITHUB OFF</span></div>
+    <div class="pill" id="pLink"><span class="dot"></span><span id="pLinkTxt">BRIDGE OFF</span></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- STAGE -->
+  <div class="stage">
+    <div class="vp-wrap" id="vpWrap">
+      <video id="video" playsinline autoplay muted></video>
+      <canvas id="cvHeat"></canvas>
+      <canvas id="cvMain"></canvas>
+      <div class="idle-screen" id="idleScreen">
+        <div class="idle-inner">
+          <div class="idle-icon">◎</div>
+          <div class="idle-title">VECTOR PRO</div>
+          <div class="idle-sub">YOLOv8n · ByteTrack · Speed estimation · Counting lines · Heatmap · Zone alerts · Persistent Re-ID · Drone guidance · GitHub deploy</div>
+          <button class="btn btn-p" id="bootBtn" style="max-width:200px;margin:0 auto;display:block">▶ Start Camera</button>
+          <div class="https-warn" id="httpsWarn" style="display:none">⚠ Camera blocked on file://. Serve via http://localhost or deploy to GitHub Pages.</div>
+        </div>
+      </div>
+      <div class="loadbar" id="loadbar"><i></i></div>
+    </div>
+
+    <!-- Draw toolbar -->
+    <div class="draw-toolbar" id="drawToolbar" style="display:none">
+      <button class="dt-btn active" id="dtSelect">✜ SELECT</button>
+      <button class="dt-btn" id="dtLine">╱ LINE</button>
+      <button class="dt-btn" id="dtZone">▭ ZONE</button>
+      <button class="dt-btn red" id="dtClear">✕ CLEAR ALL</button>
+    </div>
+
+    <!-- Analytics strip -->
+    <div class="analytics-bar">
+      <div class="abchip"><span>OBJECTS</span><b id="abObj">0</b></div>
+      <div class="abchip o"><span>MAX SPD</span><b id="abSpd">—</b></div>
+      <div class="abchip g"><span>IN/OUT</span><b id="abCross">0/0</b></div>
+      <div class="abchip"><span>ZONES</span><b id="abZone">0</b></div>
+      <div class="abchip"><span>RE-IDs</span><b id="abReid">0</b></div>
+    </div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="side">
+
+    <!-- SENSOR -->
+    <div class="sec">
+      <div class="sec-hd">Sensor <em id="engineTag">—</em></div>
+      <div class="row">
+        <button class="btn btn-p" id="startBtn">▶ Start Camera</button>
+        <button class="btn btn-g btn-sm" id="snapBtn" style="flex:0 0 auto">SNAP</button>
+      </div>
+      <div class="fld"><div class="flbl">Camera</div>
+        <select id="devSel"><option value="">— start camera to enumerate —</option></select></div>
+      <div class="fld"><div class="flbl">Resolution (max quality)</div>
+        <select id="resSel">
+          <option value="3840x2160">4K UHD — 3840×2160</option>
+          <option value="2560x1440">QHD — 2560×1440</option>
+          <option value="1920x1080" selected>FHD — 1920×1080 ✓</option>
+          <option value="1280x720">HD — 1280×720 (fastest)</option>
+        </select></div>
+      <div class="fld" id="zoomWrap" style="display:none">
+        <div class="flbl">Optical Zoom <b id="zoomVal">1.0×</b></div>
+        <input type="range" id="zoomRange" min="1" max="5" step="0.1" value="1"/></div>
+      <label class="chk"><input type="checkbox" id="mirrorChk" checked> Mirror preview</label>
+      <label class="chk" id="torchWrap" style="display:none"><input type="checkbox" id="torchChk"> Torch</label>
+    </div>
+
+    <!-- DETECTOR -->
+    <div class="sec">
+      <div class="sec-hd">Detector <em id="detTag">—</em></div>
+      <div class="fld"><div class="flbl">Confidence <b id="confVal">0.40</b></div>
+        <input type="range" id="confRange" min="0.1" max="0.9" step="0.05" value="0.40"/></div>
+      <div class="fld"><div class="flbl">Detect every <b id="strideVal">1</b> frame(s)</div>
+        <input type="range" id="strideRange" min="1" max="6" step="1" value="1"/></div>
+      <div class="fld"><div class="flbl">Track memory <b id="missVal">18</b> frames</div>
+        <input type="range" id="missRange" min="3" max="60" step="1" value="18"/></div>
+      <label class="chk"><input type="checkbox" id="trailChk" checked> Motion trails</label>
+      <label class="chk"><input type="checkbox" id="vecChk" checked> Velocity vectors</label>
+      <label class="chk"><input type="checkbox" id="speedChk" checked> Speed labels (km/h)</label>
+    </div>
+
+    <!-- RE-ID -->
+    <div class="sec">
+      <div class="sec-hd">Persistent Re-ID <em id="reidTag">ON · 0 · 0 held</em></div>
+      <label class="chk"><input type="checkbox" id="reidChk" checked> Re-identify departed targets</label>
+      <div class="fld" style="margin-top:8px"><div class="flbl">Memory <b id="reidMemVal">20</b>s</div>
+        <input type="range" id="reidMemRange" min="3" max="120" step="1" value="20"/></div>
+      <div class="fld"><div class="flbl">Strictness <b id="reidThreshVal">0.50</b></div>
+        <input type="range" id="reidThreshRange" min="0.2" max="0.9" step="0.02" value="0.50"/></div>
+      <div class="hint">Lock survives frame exit → enters <b>REACQUIRING</b> state until target returns.</div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="sec">
+      <div class="sec-hd">Analytics <em class="o">cvzone-style</em></div>
+      <div class="ov-btns">
+        <button class="ovbtn on" id="ovHeat">Heatmap</button>
+        <button class="ovbtn on" id="ovTrails">Trails</button>
+        <button class="ovbtn on" id="ovSpeed">Speed</button>
+        <button class="ovbtn on" id="ovZones">Zones</button>
+      </div>
+      <div class="flbl" style="margin-bottom:5px">Counting Lines</div>
+      <div class="ln-list" id="lineList"><div class="empty">No lines — use ╱ LINE tool above video.</div></div>
+      <div class="flbl" style="margin-bottom:5px;margin-top:8px">Alert Zones</div>
+      <div class="zn-list" id="zoneList"><div class="empty">No zones — use ▭ ZONE tool above video.</div></div>
+      <div class="hint" style="margin-top:6px"><kbd>╱ LINE</kbd> click 2 pts to draw tripwire &nbsp; <kbd>▭ ZONE</kbd> drag rect</div>
+    </div>
+
+    <!-- CLASS FILTER -->
+    <div class="sec">
+      <div class="sec-hd">Class Filter <em id="filterTag">all</em></div>
+      <div class="chips" id="chips"><div class="empty">Classes appear as objects are detected.</div></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn btn-g btn-sm" id="clearFilterBtn">Clear filter</button>
+      </div>
+    </div>
+
+    <!-- TRACKS -->
+    <div class="sec">
+      <div class="sec-hd">Live Tracks <em id="trackCount">0</em></div>
+      <div class="trk-list" id="trackList"><div class="empty">No objects tracked.</div></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn btn-g btn-sm" id="autoLockBtn">Auto-lock</button>
+        <button class="btn btn-g btn-sm" id="unlockBtn">Unlock</button>
+      </div>
+    </div>
+
+    <!-- GUIDANCE -->
+    <div class="sec">
+      <div class="sec-hd">Drone Guidance <em id="guideTag">standby</em></div>
+      <div class="telem">
+        <div class="tl"><span>TARGET</span><b class="dim" id="tTarget">—</b></div>
+        <div class="tl"><span>SPEED</span><b class="teal" id="tSpeed">—</b></div>
+        <div class="tl"><span>ERR X/Y</span><b id="tErr">0.000 / 0.000</b></div>
+        <div class="tl"><span>RANGE</span><b id="tRange">—</b></div>
+        <div class="tl"><span>BEAR/ELEV</span><b id="tBear">—</b></div>
+        <div class="tldiv"></div>
+        <div class="tl"><span>YAW_RATE</span><b class="o" id="tYaw">0.00</b></div>
+        <div class="tl"><span>PITCH_RATE</span><b class="o" id="tPitch">0.00</b></div>
+        <div class="tl"><span>FWD_VEL</span><b class="o" id="tFwd">0.00</b></div>
+      </div>
+      <div class="cmdbars">
+        <div><div class="cblbl">YAW <b id="bYawV">0.00</b></div><div class="cbtrack"><div class="cbfill" id="bYaw"></div></div></div>
+        <div><div class="cblbl">PITCH <b id="bPitchV">0.00</b></div><div class="cbtrack"><div class="cbfill" id="bPitch"></div></div></div>
+        <div><div class="cblbl">FWD <b id="bFwdV">0.00</b></div><div class="cbtrack"><div class="cbfill" id="bFwd"></div></div></div>
+      </div>
+      <div class="fld" style="margin-top:12px"><div class="flbl">Gain Kp <b id="kpVal">1.20</b></div>
+        <input type="range" id="kpRange" min="0.2" max="3" step="0.1" value="1.2"/></div>
+      <div class="fld"><div class="flbl">Standoff <b id="soVal">4.0m</b></div>
+        <input type="range" id="soRange" min="0.5" max="25" step="0.5" value="4"/></div>
+      <div class="fld"><div class="flbl">Horiz FOV <b id="fovVal">65°</b></div>
+        <input type="range" id="fovRange" min="30" max="150" step="1" value="65"/></div>
+    </div>
+
+    <!-- GITHUB -->
+    <div class="sec">
+      <div class="sec-hd">GitHub Deploy <em id="ghTag">not configured</em></div>
+      <div class="flbl" style="margin-bottom:4px">GitHub Username</div>
+      <input class="gh-inp" type="text" id="ghUser" placeholder="your-github-username"/>
+      <div class="flbl" style="margin-bottom:4px">Repository name</div>
+      <input class="gh-inp" type="text" id="ghRepo" placeholder="vector-pro"/>
+      <div class="flbl" style="margin-bottom:4px">Classic token (repo + workflow scope)</div>
+      <input class="gh-inp" type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx" autocomplete="new-password"/>
+      <div class="row" style="margin-top:8px">
+        <button class="btn btn-g btn-sm" id="ghInitBtn">Init Repo</button>
+        <button class="btn btn-g btn-sm" id="ghDeployBtn">Deploy Update</button>
+      </div>
+      <div class="gh-status" id="ghStatus">Enter credentials then Init Repo to push to GitHub Pages.</div>
+      <div class="hint" style="margin-top:8px">Token: <b>Settings → Developer settings → Tokens (classic)</b><br>Scopes needed: <b>repo</b> + <b>workflow</b></div>
+    </div>
+
+    <!-- BRIDGE -->
+    <div class="sec">
+      <div class="sec-hd">Drone Bridge</div>
+      <div class="fld"><div class="flbl">WebSocket URL</div>
+        <input type="text" id="wsUrl" value="ws://localhost:8765" spellcheck="false"/></div>
+      <div class="row">
+        <button class="btn btn-g btn-sm" id="linkBtn">Connect</button>
+        <button class="btn btn-g btn-sm" id="recBtn">Record</button>
+      </div>
+      <div class="row">
+        <button class="btn btn-g btn-sm" id="expJsonBtn">Export JSON</button>
+        <button class="btn btn-g btn-sm" id="expCsvBtn">Export CSV</button>
+      </div>
+      <div class="hint"><kbd>L</kbd> auto-lock &nbsp;<kbd>U</kbd> unlock &nbsp;<kbd>Space</kbd> pause<br><kbd>H</kbd> heatmap &nbsp;<kbd>T</kbd> trails &nbsp;<kbd>S</kbd> speed labels</div>
+    </div>
+
+  </div><!-- /side -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+/* ============================================================================
+   VECTOR PRO — Advanced Real-Time Object Tracking
+   ─────────────────────────────────────────────────────────────────────────────
+   L1 Perception  YOLOv8n ONNX (WebGL/WASM) → MediaPipe EfficientDet → TFJS
+   L2 Tracking    ByteTrack-style 2-round IoU + alpha-beta filter + re-ID
+   L3 Analytics   Speed (km/h) · Counting lines · Heatmap · Zone alerts
+   L4 Guidance    Pinhole range + P-ctrl → WebSocket → MAVLink bridge
+   L5 GitHub      Push index.html to GitHub Pages via REST API
+   ========================================================================== */
+
+const $ = id => document.getElementById(id);
+
+/* ── STATE ─────────────────────────────────────────────────────── */
+const S = {
+  running:false, paused:false,
+  stream:null, camTrack:null,
+  engine:'—', frame:0, fps:0, inferMs:0,
+  lastFpsT:performance.now(), fpsCount:0,
+  conf:0.40, stride:1, maxMiss:18,
+  trails:true, vectors:true, showSpeed:true, showHeat:true, showZones:true,
+  mirror:true,
+  filter:new Set(), seenClasses:new Set(),
+  lockedId:null, lockLost:false,
+  reid:true, reidMemory:20, reidThresh:0.50, reids:0,
+  kp:1.2, standoff:4.0, fovDeg:65,
+  ws:null, wsOn:false,
+  recording:false, records:[],
+  vw:0, vh:0,
+  drawMode:'select',
+  lineStart:null, zoneDrag:null,
+  lines:[], zones:[],
+  heatData:null, heatW:0, heatH:0,
+  HEAT_SCALE:8, heatDecay:0.995,
+  ghUser:'', ghRepo:'', ghToken:'',
+};
+
+/* ── REAL-WORLD WIDTHS (metres) for pinhole range ──────────────── */
+const REF_W = {
+  person:0.50,bicycle:1.70,car:1.80,motorcycle:0.80,bus:2.55,truck:2.55,
+  'traffic light':0.30,'stop sign':0.75,bench:1.50,bird:0.25,cat:0.35,
+  dog:0.50,horse:2.00,sheep:1.00,cow:2.00,bear:1.00,
+  backpack:0.35,umbrella:1.00,handbag:0.35,suitcase:0.70,
+  bottle:0.08,cup:0.09,laptop:0.35,'cell phone':0.075,
+  book:0.15,chair:0.55,'potted plant':0.30,tv:1.10,keyboard:0.44,
+  mouse:0.06,remote:0.05,'sports ball':0.22,kite:1.50,
+  airplane:30.0,boat:4.00,train:3.00,
+};
+const DEF_W = 0.50;
+
+/* ── TOAST ─────────────────────────────────────────────────────── */
+let _toastT;
+function toast(msg,dur=2600){
+  const el=$('toast');el.textContent=msg;el.classList.add('show');
+  clearTimeout(_toastT);_toastT=setTimeout(()=>el.classList.remove('show'),dur);
+}
+
+/* ── LAYER 1: PERCEPTION ───────────────────────────────────────── */
+const YOLO80 = [
+  'person','bicycle','car','motorcycle','airplane','bus','train','truck','boat',
+  'traffic light','fire hydrant','stop sign','parking meter','bench','bird','cat','dog',
+  'horse','sheep','cow','elephant','bear','zebra','giraffe','backpack','umbrella',
+  'handbag','tie','suitcase','frisbee','skis','snowboard','sports ball','kite',
+  'baseball bat','baseball glove','skateboard','surfboard','tennis racket','bottle',
+  'wine glass','cup','fork','knife','spoon','bowl','banana','apple','sandwich','orange',
+  'broccoli','carrot','hot dog','pizza','donut','cake','chair','couch','potted plant',
+  'bed','dining table','toilet','tv','laptop','mouse','remote','keyboard','cell phone',
+  'microwave','oven','toaster','sink','refrigerator','book','clock','vase','scissors',
+  'teddy bear','hair drier','toothbrush',
+];
+
+const Perception = {
+  kind:null, mp:null, coco:null, yoloSess:null, ort:null, lastTs:0,
+
+  async init(){
+    $('loadbar').classList.add('on');
+    try {
+      await this._initYolo();
+      this.kind='yolo'; S.engine='YOLOv8n / ONNX (WebGL)';
+      $('engineTag').textContent='yolov8n-onnx'; $('detTag').textContent='YOLOv8n';
+    } catch(e1){
+      console.warn('[VP] YOLO:',e1.message);
+      toast('YOLOv8n unavailable — loading MediaPipe…',3000);
+      try {
+        await this._initMP();
+        this.kind='mediapipe'; S.engine='MediaPipe EfficientDet-Lite0';
+        $('engineTag').textContent='efficientdet-lite0'; $('detTag').textContent='MediaPipe';
+      } catch(e2){
+        console.warn('[VP] MediaPipe:',e2.message);
+        await this._initCoco();
+        this.kind='coco'; S.engine='TFJS COCO-SSD';
+        $('engineTag').textContent='coco-ssd'; $('detTag').textContent='TFJS';
+      }
+    }
+    $('loadbar').classList.remove('on');
+    $('sEngine').textContent = this.kind.toUpperCase();
+    return S.engine;
+  },
+
+  async _initYolo(){
+    await _loadScript('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js');
+    /* global ort */
+    ort.env.wasm.wasmPaths='https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
+    const MODEL='https://huggingface.co/Xenova/yolov8n/resolve/main/onnx/model_q8.onnx';
+    this.yoloSess=await ort.InferenceSession.create(MODEL,{
+      executionProviders:['webgl','wasm'],graphOptimizationLevel:'all'});
+    this.ort=ort;
+    // Warmup run
+    const dummy=new ort.Tensor('float32',new Float32Array(1*3*640*640),[1,3,640,640]);
+    await this.yoloSess.run({images:dummy});
+  },
+
+  async _initMP(){
+    const v=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14');
+    const f=await v.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+    this.mp=await v.ObjectDetector.createFromOptions(f,{
+      baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite',delegate:'GPU'},
+      scoreThreshold:0.15,maxResults:30,runningMode:'VIDEO'});
+  },
+
+  async _initCoco(){
+    await _loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js');
+    await _loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js');
+    /* global tf, cocoSsd */
+    await tf.setBackend('webgl').catch(()=>tf.setBackend('cpu'));
+    this.coco=await cocoSsd.load({base:'lite_mobilenet_v2'});
+  },
+
+  /* letterbox video to 640×640 and return float32 NCHW tensor */
+  _prep(video){
+    const W=640,H=640,vw=video.videoWidth,vh=video.videoHeight;
+    const sc=Math.min(W/vw,H/vh);
+    const nw=Math.round(vw*sc),nh=Math.round(vh*sc);
+    const padX=(W-nw)/2,padY=(H-nh)/2;
+    const c=document.createElement('canvas');c.width=W;c.height=H;
+    const g=c.getContext('2d');
+    g.fillStyle='#808080';g.fillRect(0,0,W,H);
+    g.drawImage(video,padX,padY,nw,nh);
+    const px=g.getImageData(0,0,W,H).data;
+    const d=new Float32Array(3*W*H);
+    for(let i=0;i<W*H;i++){d[i]=px[i*4]/255;d[W*H+i]=px[i*4+1]/255;d[2*W*H+i]=px[i*4+2]/255;}
+    return{tensor:new this.ort.Tensor('float32',d,[1,3,W,H]),sc,padX,padY,vw,vh};
+  },
+
+  /* NMS on YOLOv8 output [1,84,8400] */
+  _nms(out,prep,conf){
+    const N=out.dims[2],dat=out.data,res=[];
+    for(let i=0;i<N;i++){
+      let mc=0,ms=0;
+      for(let c=0;c<80;c++){const s=dat[(4+c)*N+i];if(s>ms){ms=s;mc=c;}}
+      if(ms<conf)continue;
+      const cx=dat[0*N+i],cy=dat[1*N+i],bw=dat[2*N+i],bh=dat[3*N+i];
+      res.push({
+        x:((cx-bw/2)-prep.padX)/prep.sc, y:((cy-bh/2)-prep.padY)/prep.sc,
+        w:bw/prep.sc, h:bh/prep.sc,
+        cls:YOLO80[mc]||'object', score:ms
+      });
+    }
+    res.sort((a,b)=>b.score-a.score);
+    const keep=[],sup=new Uint8Array(res.length);
+    for(let i=0;i<res.length;i++){
+      if(sup[i])continue;keep.push(res[i]);
+      for(let j=i+1;j<res.length;j++){
+        if(!sup[j]&&res[j].cls===res[i].cls&&iou(res[i],res[j])>0.45)sup[j]=1;
+      }
+    }
+    return keep;
+  },
+
+  async detect(video,ts){
+    if(this.kind==='yolo'){
+      const prep=this._prep(video);
+      const out=await this.yoloSess.run({images:prep.tensor});
+      const key=Object.keys(out)[0];
+      return this._nms(out[key],prep,S.conf*0.7);
+    }
+    if(this.kind==='mediapipe'){
+      const t=Math.max(Math.round(ts),this.lastTs+1);this.lastTs=t;
+      const r=this.mp.detectForVideo(video,t);
+      return(r.detections||[]).map(d=>{
+        const c=d.categories?.[0],bb=d.boundingBox;if(!c)return null;
+        return{x:bb.originX,y:bb.originY,w:bb.width,h:bb.height,cls:c.categoryName||'object',score:c.score};
+      }).filter(Boolean);
+    }
+    const p=await this.coco.detect(video,25,0.15);
+    return p.map(x=>({x:x.bbox[0],y:x.bbox[1],w:x.bbox[2],h:x.bbox[3],cls:x.class,score:x.score}));
+  },
+};
+
+function _loadScript(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector(`script[src="${src}"]`)){res();return;}
+    const s=document.createElement('script');s.src=src;
+    s.onload=res;s.onerror=()=>rej(new Error('Failed: '+src));
+    document.head.appendChild(s);
+  });
+}
+
+/* ── LAYER 2: TRACKING ─────────────────────────────────────────── */
+function iou(a,b){
+  const x1=Math.max(a.x,b.x),y1=Math.max(a.y,b.y);
+  const x2=Math.min(a.x+a.w,b.x+b.w),y2=Math.min(a.y+a.h,b.y+b.h);
+  const iw=Math.max(0,x2-x1),ih=Math.max(0,y2-y1),inter=iw*ih;
+  if(inter<=0)return 0;
+  return inter/(a.w*a.h+b.w*b.h-inter);
+}
+function affinity(tr,det){
+  const ov=iou(tr,det);
+  const dx=tr.cx-(det.x+det.w/2),dy=tr.cy-(det.y+det.h/2);
+  const sc=Math.max(det.w,det.h,1);
+  const near=Math.max(0,1-Math.hypot(dx,dy)/(2.5*sc));
+  const wr=Math.min(tr.w/Math.max(1,det.w),det.w/Math.max(1,tr.w));
+  const hr=Math.min(tr.h/Math.max(1,det.h),det.h/Math.max(1,tr.h));
+  let s=Math.max(ov,near*Math.min(wr,hr)*0.55);
+  if(tr.cls!==det.cls)s*=0.35;
+  return s;
+}
+function hueOf(cls){let h=0;for(let i=0;i<cls.length;i++)h=(h*31+cls.charCodeAt(i))%360;return h;}
+
+/* appearance descriptor: 20-dim mean-centred HSV histogram */
+const DN=20,DS=24;let _dc=null,_dg=null;
+function _dctx(){if(!_dc){_dc=document.createElement('canvas');_dc.width=_dc.height=DS;_dg=_dc.getContext('2d',{willReadFrequently:true});}return _dg;}
+function computeDesc(video,b){
+  if(!video?.videoWidth||b.w<8||b.h<8)return null;
+  const sx=Math.max(0,Math.min(video.videoWidth-1,b.x));
+  const sy=Math.max(0,Math.min(video.videoHeight-1,b.y));
+  const sw=Math.max(1,Math.min(video.videoWidth-sx,b.w));
+  const sh=Math.max(1,Math.min(video.videoHeight-sy,b.h));
+  const g=_dctx();
+  try{g.drawImage(video,sx,sy,sw,sh,0,0,DS,DS);}catch{return null;}
+  let px;try{px=g.getImageData(0,0,DS,DS).data;}catch{return null;}
+  const hist=new Float32Array(DN);const c=(DS-1)/2;
+  for(let y=0;y<DS;y++){for(let x=0;x<DS;x++){
+    const i=(y*DS+x)*4;
+    const r=px[i]/255,gg=px[i+1]/255,bb=px[i+2]/255;
+    const mx=Math.max(r,gg,bb),mn=Math.min(r,gg,bb),d=mx-mn;
+    const v=mx,sat=mx===0?0:d/mx;
+    const wt=1-0.6*Math.hypot(x-c,y-c)/(c*1.414);
+    if(sat<0.18||v<0.12){hist[16+Math.min(3,(v*4)|0)]+=wt;}
+    else{
+      let h;if(mx===r)h=((gg-bb)/d)%6;else if(mx===gg)h=(bb-r)/d+2;else h=(r-gg)/d+4;
+      h=(h*60+360)%360;hist[Math.min(7,(h/45)|0)*2+(v<0.5?0:1)]+=wt;
+    }
+  }}
+  let mean=0;for(let i=0;i<DN;i++)mean+=hist[i];mean/=DN;
+  let norm=0;for(let i=0;i<DN;i++){hist[i]-=mean;norm+=hist[i]*hist[i];}
+  norm=Math.sqrt(norm)||1;for(let i=0;i<DN;i++)hist[i]/=norm;
+  return hist;
+}
+function descSim(a,b){if(!a||!b)return 0;let s=0;for(let i=0;i<DN;i++)s+=a[i]*b[i];return s;}
+
+class Track{
+  constructor(det,id,t){
+    this.id=id;this.cls=det.cls;this.score=det.score;
+    this.x=det.x;this.y=det.y;this.w=det.w;this.h=det.h;
+    this.vx=0;this.vy=0;this.hits=1;this.misses=0;this.age=0;this.t=t;
+    this.trail=[{x:det.x+det.w/2,y:det.y+det.h/2}];
+    this.hue=hueOf(det.cls);this.confirmed=false;
+    this.desc=det.desc||null;this.reidAt=0;
+    this.speedBuf=[];this.speedKmh=0;
+    this.lineCrossed=new Set();
+    this.prevCx=this.x+this.w/2;this.prevCy=this.y+this.h/2;
+  }
+  get cx(){return this.x+this.w/2;}
+  get cy(){return this.y+this.h/2;}
+
+  _reNorm(){
+    let mean=0;for(let i=0;i<DN;i++)mean+=this.desc[i];mean/=DN;
+    let norm=0;for(let i=0;i<DN;i++){this.desc[i]-=mean;norm+=this.desc[i]*this.desc[i];}
+    norm=Math.sqrt(norm)||1;for(let i=0;i<DN;i++)this.desc[i]/=norm;
+  }
+  updateDesc(d){
+    if(!d)return;
+    if(!this.desc){this.desc=d.slice();return;}
+    for(let i=0;i<DN;i++)this.desc[i]+=0.1*(d[i]-this.desc[i]);
+    this._reNorm();
+  }
+
+  predict(dt){
+    const damp=this.misses>0?0.82:1;
+    this.vx*=damp;this.vy*=damp;
+    this.x+=this.vx*dt;this.y+=this.vy*dt;this.age++;
+    if(S.vw){this.x=Math.max(-this.w,Math.min(S.vw,this.x));this.y=Math.max(-this.h,Math.min(S.vh,this.y));}
+  }
+
+  correct(det,dt,t){
+    this.prevCx=this.cx;this.prevCy=this.cy;
+    const A=0.65,B=0.30,dtc=Math.max(0.033,Math.min(0.2,dt));
+    const rx=det.x-this.x,ry=det.y-this.y;
+    this.x+=A*rx;this.y+=A*ry;
+    this.vx+=B*rx/dtc;this.vy+=B*ry/dtc;
+    const vmax=(S.vw||1280)*1.5;
+    this.vx=Math.max(-vmax,Math.min(vmax,this.vx));
+    this.vy=Math.max(-vmax,Math.min(vmax,this.vy));
+    this.w+=0.5*(det.w-this.w);this.h+=0.5*(det.h-this.h);
+    this.score=0.6*this.score+0.4*det.score;
+    this.cls=det.cls;this.hits++;this.misses=0;this.t=t;
+    this.confirmed=this.confirmed||this.hits>=2;
+    this.updateDesc(det.desc);
+    this.trail.push({x:this.cx,y:this.cy});
+    if(this.trail.length>60)this.trail.shift();
+    // speed
+    const pixSpd=Math.hypot(this.vx,this.vy);
+    const mpp=(REF_W[this.cls]||DEF_W)/Math.max(1,this.w);
+    this.speedBuf.push(pixSpd*mpp*3.6);
+    if(this.speedBuf.length>8)this.speedBuf.shift();
+    this.speedKmh=this.speedBuf.reduce((a,b)=>a+b,0)/this.speedBuf.length;
+  }
+}
+
+/* ByteTrack-style tracker */
+const Tracker={
+  tracks:[],gallery:[],nextId:1,lastT:performance.now(),
+
+  update(dets,t){
+    const dt=Math.max(0.008,Math.min(0.25,(t-this.lastT)/1000));this.lastT=t;
+    for(const tr of this.tracks)tr.predict(dt);
+
+    const hi=dets.filter(d=>d.score>=S.conf*0.75);
+    const lo=dets.filter(d=>d.score<S.conf*0.75&&d.score>=0.10);
+    const usedT=new Set(),usedHi=new Set(),usedLo=new Set();
+
+    this._assoc(hi,this.tracks.map((_,i)=>i),usedT,usedHi,dt,t,0.20);
+    const unmT=this.tracks.map((_,i)=>i).filter(i=>!usedT.has(i));
+    this._assoc(lo,unmT,usedT,usedLo,dt,t,0.15);
+
+    for(let i=0;i<this.tracks.length;i++)if(!usedT.has(i))this.tracks[i].misses++;
+
+    for(let j=0;j<hi.length;j++){
+      if(usedHi.has(j))continue;
+      const det=hi[j];
+      const rev=S.reid?this.tryReid(det,t):null;
+      this.tracks.push(rev||new Track(det,this.nextId++,t));
+    }
+
+    const keep=[];
+    for(const tr of this.tracks){if(tr.misses>S.maxMiss){this.retire(tr,t);continue;}keep.push(tr);}
+    this.tracks=keep;
+    this.expireGallery(t);
+    Analytics.update(this.visible(),t);
+  },
+
+  _assoc(subDets,tIdxs,usedT,usedD,dt,t,minS){
+    const pairs=[];
+    for(const ti of tIdxs)for(let j=0;j<subDets.length;j++){
+      const s=affinity(this.tracks[ti],subDets[j]);if(s>0.05)pairs.push({ti,j,s});
+    }
+    pairs.sort((a,b)=>b.s-a.s);
+    for(const p of pairs){
+      if(usedT.has(p.ti)||usedD.has(p.j))continue;
+      if(p.s<minS)continue;
+      this.tracks[p.ti].correct(subDets[p.j],dt,t);
+      usedT.add(p.ti);usedD.add(p.j);
+    }
+  },
+
+  retire(tr,t){
+    if(S.reid&&tr.desc&&tr.confirmed){
+      this.gallery.push({id:tr.id,cls:tr.cls,desc:tr.desc,hue:tr.hue,
+        cx:tr.cx,cy:tr.cy,vx:tr.vx,vy:tr.vy,w:tr.w,h:tr.h,retiredT:t});
+      if(this.gallery.length>50)this.gallery.shift();
+      if(S.lockedId===tr.id)S.lockLost=true;
+    }else if(S.lockedId===tr.id){setLock(null);}
+  },
+
+  tryReid(det,t){
+    if(!det.desc||!this.gallery.length)return null;
+    let best=null,bestS=0,bestK=-1;
+    for(let k=0;k<this.gallery.length;k++){
+      const e=this.gallery[k];if(e.cls!==det.cls)continue;
+      const sim=descSim(e.desc,det.desc);if(sim<S.reidThresh)continue;
+      const gap=Math.min(6,(t-e.retiredT)/1000);
+      const near=Math.max(0,1-Math.hypot(det.x+det.w/2-(e.cx+e.vx*gap),det.y+det.h/2-(e.cy+e.vy*gap))/((S.vw||1280)*0.6));
+      const score=sim+0.12*near;
+      if(score>bestS){bestS=score;best=e;bestK=k;}
+    }
+    if(!best)return null;
+    this.gallery.splice(bestK,1);
+    const tr=new Track(det,best.id,t);
+    tr.confirmed=true;tr.hits=3;tr.updateDesc(best.desc);tr.reidAt=t;
+    S.reids++;$('abReid').textContent=S.reids;
+    if(S.lockedId===best.id)S.lockLost=false;
+    onReid(tr);return tr;
+  },
+
+  expireGallery(t){
+    const before=this.gallery.length;
+    this.gallery=this.gallery.filter(e=>{
+      if((t-e.retiredT)/1000>S.reidMemory){if(S.lockedId===e.id)setLock(null);return false;}
+      return true;
+    });
+    if(before!==this.gallery.length)updateReidTag();
+  },
+
+  coast(t){
+    const dt=Math.max(0.008,Math.min(0.25,(t-this.lastT)/1000));this.lastT=t;
+    for(const tr of this.tracks)tr.predict(dt);
+    Analytics.updateHeat(this.visible());
+  },
+
+  visible(){
+    return this.tracks.filter(tr=>
+      tr.confirmed&&tr.score>=S.conf&&tr.misses<=Math.min(6,S.maxMiss)&&
+      (S.filter.size===0||S.filter.has(tr.cls)));
+  },
+  lockedInGallery(){return S.lockedId!=null&&this.gallery.some(e=>e.id===S.lockedId);},
+  reset(){this.tracks=[];this.gallery=[];this.nextId=1;S.reids=0;S.lockLost=false;},
+};
+
+/* ── LAYER 3: ANALYTICS ────────────────────────────────────────── */
+let _linId=0,_znId=0;
+
+const Analytics={
+  totalIn:0,totalOut:0,
+
+  initHeat(){
+    S.heatW=Math.ceil(S.vw/S.HEAT_SCALE);S.heatH=Math.ceil(S.vh/S.HEAT_SCALE);
+    S.heatData=new Float32Array(S.heatW*S.heatH);
+  },
+
+  addHeat(tracks){
+    if(!S.heatData)return;
+    for(const tr of tracks){
+      const hx=(tr.cx/S.HEAT_SCALE)|0,hy=(tr.cy/S.HEAT_SCALE)|0;
+      if(hx>=0&&hx<S.heatW&&hy>=0&&hy<S.heatH)
+        S.heatData[hy*S.heatW+hx]=Math.min(255,S.heatData[hy*S.heatW+hx]+5);
+    }
+    if(S.showHeat)for(let i=0;i<S.heatData.length;i++)S.heatData[i]*=S.heatDecay;
+  },
+
+  renderHeat(){
+    if(!S.heatData)return;
+    const cnv=$('cvHeat'),ctx=cnv.getContext('2d');
+    if(!S.showHeat){ctx.clearRect(0,0,cnv.width,cnv.height);return;}
+    const id=ctx.createImageData(S.heatW,S.heatH),px=id.data;
+    for(let i=0;i<S.heatData.length;i++){
+      const v=Math.min(1,S.heatData[i]/70);
+      if(v<0.01){px[i*4+3]=0;continue;}
+      let r,g,b;
+      if(v<0.25){r=0;g=Math.round(v*4*255);b=255;}
+      else if(v<0.5){r=0;g=255;b=Math.round((1-(v-0.25)*4)*255);}
+      else if(v<0.75){r=Math.round((v-0.5)*4*255);g=255;b=0;}
+      else{r=255;g=Math.round((1-(v-0.75)*4)*255);b=0;}
+      px[i*4]=r;px[i*4+1]=g;px[i*4+2]=b;px[i*4+3]=Math.round(v*210);
+    }
+    ctx.putImageData(id,0,0);
+  },
+
+  updateHeat(vis){this.addHeat(vis);this.renderHeat();},
+
+  _cross(ax,ay,bx,by,px,py,qx,qy){
+    const c2=(ox,oy,ex,ey,fx,fy)=>(ex-ox)*(fy-oy)-(ey-oy)*(fx-ox);
+    const d1=c2(px,py,qx,qy,ax,ay),d2=c2(px,py,qx,qy,bx,by);
+    const d3=c2(ax,ay,bx,by,px,py),d4=c2(ax,ay,bx,by,qx,qy);
+    if(((d1>0&&d2<0)||(d1<0&&d2>0))&&((d3>0&&d4<0)||(d3<0&&d4>0)))return Math.sign(d2-d1);
+    return 0;
+  },
+
+  checkLines(tracks){
+    for(const tr of tracks){
+      if(tr.trail.length<2)continue;
+      const prev=tr.trail[tr.trail.length-2],cur=tr.trail[tr.trail.length-1];
+      for(const ln of S.lines){
+        const key=ln.id+'_'+tr.id;
+        const dir=this._cross(prev.x,prev.y,cur.x,cur.y,ln.x1,ln.y1,ln.x2,ln.y2);
+        if(dir===0)continue;
+        if(tr.lineCrossed.has(key)){tr.lineCrossed.delete(key);continue;}
+        tr.lineCrossed.add(key);
+        if(dir>0){ln.out++;this.totalOut++;}else{ln.in++;this.totalIn++;}
+        $('abCross').textContent=`${this.totalIn}/${this.totalOut}`;
+        renderLineList();
+      }
+    }
+  },
+
+  checkZones(tracks){
+    for(const z of S.zones)z.count=0;
+    for(const tr of tracks)for(const z of S.zones)
+      if(tr.cx>=z.x&&tr.cx<=z.x+z.w&&tr.cy>=z.y&&tr.cy<=z.y+z.h)z.count++;
+    $('abZone').textContent=S.zones.filter(z=>z.count>0).length;
+    renderZoneList();
+  },
+
+  update(vis,t){
+    this.addHeat(vis);this.renderHeat();
+    this.checkLines(vis);this.checkZones(vis);
+    let maxKmh=0;for(const tr of vis)maxKmh=Math.max(maxKmh,tr.speedKmh);
+    $('abSpd').textContent=maxKmh>0.5?maxKmh.toFixed(1)+' km/h':'—';
+    $('sSpeed').textContent=maxKmh>0.5?maxKmh.toFixed(0)+'km/h':'—';
+    $('abObj').textContent=vis.length;
+  },
+};
+
+/* ── LAYER 4: GUIDANCE ─────────────────────────────────────────── */
+function guidance(tr){
+  if(!tr||!S.vw)return null;
+  const ex=(tr.cx/S.vw-0.5)*2,ey=(tr.cy/S.vh-0.5)*2;
+  const fov=S.fovDeg*Math.PI/180,fPx=(S.vw/2)/Math.tan(fov/2);
+  const rw=REF_W[tr.cls]||DEF_W,range=rw*fPx/Math.max(1,tr.w);
+  const bearing=Math.atan2(tr.cx-S.vw/2,fPx)*180/Math.PI;
+  const elev=Math.atan2(S.vh/2-tr.cy,fPx)*180/Math.PI;
+  const cl=(v,m)=>Math.max(-m,Math.min(m,v));
+  return{
+    id:tr.id,cls:tr.cls,score:+tr.score.toFixed(3),
+    ex:+ex.toFixed(4),ey:+ey.toFixed(4),
+    range:+range.toFixed(2),bearing:+bearing.toFixed(2),elev:+elev.toFixed(2),
+    speed_kmh:+tr.speedKmh.toFixed(1),
+    px:{x:Math.round(tr.x),y:Math.round(tr.y),w:Math.round(tr.w),h:Math.round(tr.h)},
+    vel:{x:+tr.vx.toFixed(1),y:+tr.vy.toFixed(1)},
+    cmd:{yaw_rate:+cl(S.kp*ex,1).toFixed(3),pitch_rate:+cl(S.kp*-ey,1).toFixed(3),fwd_vel:+cl(0.5*(range-S.standoff),1).toFixed(3)},
+    frame:{w:S.vw,h:S.vh,fov:S.fovDeg},t:Date.now(),
+  };
+}
+
+/* ── CAMERA ────────────────────────────────────────────────────── */
+async function startCamera(deviceId){
+  const[rw,rh]=$('resSel').value.split('x').map(Number);
+  const con={video:{width:{ideal:rw},height:{ideal:rh},frameRate:{ideal:60}},audio:false};
+  if(deviceId)con.video.deviceId={exact:deviceId};
+  else con.video.facingMode='environment';
+  stopStream();
+  try{S.stream=await navigator.mediaDevices.getUserMedia(con);}
+  catch(err){
+    if(err?.name==='OverconstrainedError'||err?.name==='NotReadableError'){
+      S.stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+      toast('Requested mode unavailable — using default');
+    }else throw err;
+  }
+  const v=$('video');v.srcObject=S.stream;await v.play().catch(()=>{});
+  S.camTrack=S.stream.getVideoTracks()[0];
+  await waitForVideo(v);
+  S.vw=v.videoWidth;S.vh=v.videoHeight;
+  $('cvMain').width=S.vw;$('cvMain').height=S.vh;
+  $('cvHeat').width=S.vw;$('cvHeat').height=S.vh;
+  $('vpWrap').style.aspectRatio=`${S.vw}/${S.vh}`;
+  Analytics.initHeat();
+  const st=S.camTrack?.getSettings?.()??{};
+  $('sRes').textContent=`${S.vw}x${S.vh}`+(st.frameRate?` @${Math.round(st.frameRate)}`:'');
+  if(st.facingMode==='environment'){S.mirror=false;$('mirrorChk').checked=false;$('vpWrap').classList.remove('mirror-on');}
+  applyCapabilities();await enumerate();
+  $('idleScreen').style.display='none';$('drawToolbar').style.display='flex';
+}
+
+function waitForVideo(v){
+  return new Promise(res=>{
+    if(v.videoWidth>0)return res();
+    const chk=()=>v.videoWidth>0?res():requestAnimationFrame(chk);
+    v.onloadedmetadata=chk;chk();
+  });
+}
+
+function applyCapabilities(){
+  if(!S.camTrack?.getCapabilities)return;
+  let caps={};try{caps=S.camTrack.getCapabilities()||{};}catch{}
+  if(caps.zoom){
+    $('zoomWrap').style.display='block';
+    const r=$('zoomRange');r.min=caps.zoom.min??1;r.max=caps.zoom.max??5;r.step=caps.zoom.step||0.1;
+    r.value=S.camTrack.getSettings().zoom??caps.zoom.min??1;
+    $('zoomVal').textContent=Number(r.value).toFixed(1)+'x';
+  }else{$('zoomWrap').style.display='none';}
+  $('torchWrap').style.display=caps.torch?'flex':'none';
+}
+
+async function enumerate(){
+  try{
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    const cams=devs.filter(d=>d.kind==='videoinput');
+    const cur=S.camTrack?.getSettings?.().deviceId;
+    $('devSel').innerHTML=cams.map((c,i)=>`<option value="${c.deviceId}"${c.deviceId===cur?' selected':''}>${esc(c.label||'Camera '+(i+1))}</option>`).join('');
+  }catch{}
+}
+
+function stopStream(){S.stream?.getTracks().forEach(t=>t.stop());S.stream=null;S.camTrack=null;}
+
+/* ── MAIN LOOP ─────────────────────────────────────────────────── */
+async function boot(){
+  if(S.running){shutdown();return;}
+  $('startBtn').disabled=true;$('bootBtn').disabled=true;$('startBtn').textContent='Starting…';
+  try{
+    await startCamera($('devSel').value||null);
+    if(!Perception.kind){$('startBtn').textContent='Loading detector…';const eng=await Perception.init();toast(eng,3000);}
+    S.running=true;S.paused=false;
+    $('startBtn').textContent='■ Stop';$('startBtn').disabled=false;
+    loop();
+  }catch(err){
+    console.error('[VP]',err);
+    $('startBtn').disabled=false;$('bootBtn').disabled=false;$('startBtn').textContent='▶ Start Camera';
+    $('loadbar').classList.remove('on');
+    if(err?.name==='NotAllowedError'||err?.name==='SecurityError')toast('Camera permission denied');
+    else if(err?.name==='NotFoundError')toast('No camera found');
+    else toast(err.message||'Could not start');
+  }
+}
+
+function shutdown(){
+  S.running=false;stopStream();Tracker.reset();setLock(null);
+  $('video').srcObject=null;$('idleScreen').style.display='flex';$('drawToolbar').style.display='none';
+  $('startBtn').textContent='▶ Start Camera';$('bootBtn').disabled=false;
+  clearCanvas();renderTracks();
+  ['sFps','sInfer','sTracks','sSpeed','sRes'].forEach(id=>$(id).textContent='—');
+}
+
+async function loop(){
+  if(!S.running)return;
+  const v=$('video'),now=performance.now();
+  if(!S.paused&&v.readyState>=2&&v.videoWidth>0){
+    if(v.videoWidth!==S.vw||v.videoHeight!==S.vh){
+      S.vw=v.videoWidth;S.vh=v.videoHeight;
+      $('cvMain').width=S.vw;$('cvMain').height=S.vh;
+      $('cvHeat').width=S.vw;$('cvHeat').height=S.vh;
+      $('vpWrap').style.aspectRatio=`${S.vw}/${S.vh}`;
+      $('sRes').textContent=`${S.vw}x${S.vh}`;
+      Analytics.initHeat();
+    }
+    S.frame++;
+    try{
+      if(S.frame%S.stride===0){
+        const t0=performance.now();
+        const dets=await Perception.detect(v,now);
+        S.inferMs=performance.now()-t0;
+        const kept=dets.filter(d=>d.score>=Math.max(0.10,S.conf*0.5));
+        if(S.reid)for(const d of kept)d.desc=computeDesc(v,d);
+        Tracker.update(kept,now);
+      }else{Tracker.coast(now);}
+    }catch(e){console.error('[VP] detect:',e);}
+    draw();tickGuidance();
+    S.fpsCount++;
+    if(now-S.lastFpsT>=500){
+      S.fps=S.fpsCount*1000/(now-S.lastFpsT);S.fpsCount=0;S.lastFpsT=now;
+      const fe=$('sFps');fe.textContent=S.fps>=10?S.fps.toFixed(0):S.fps.toFixed(1);
+      fe.className='sval '+(S.fps>=20?'ok':S.fps>=10?'warn':'bad');
+      $('sInfer').textContent=S.inferMs.toFixed(0)+'ms';
+      $('sTracks').textContent=Tracker.visible().length;
+    }
+    if(now-_lastTrkT>200){renderTracks();_lastTrkT=now;}
+    if(now-_lastReidT>1000){updateReidTag();_lastReidT=now;}
+  }
+  if(v.requestVideoFrameCallback)v.requestVideoFrameCallback(()=>loop());
+  else requestAnimationFrame(loop);
+}
+let _lastTrkT=0,_lastReidT=0;
+
+/* ── RENDER ─────────────────────────────────────────────────────── */
+function clearCanvas(){
+  let c=$('cvMain'),g=c.getContext('2d');g.clearRect(0,0,c.width,c.height);
+  c=$('cvHeat');g=c.getContext('2d');g.clearRect(0,0,c.width,c.height);
+}
+
+function draw(){
+  const c=$('cvMain'),g=c.getContext('2d'),W=c.width,H=c.height;
+  g.clearRect(0,0,W,H);
+  const sc=W/1280,px=n=>n*Math.max(0.7,sc);
+  const vis=Tracker.visible(),locked=vis.find(t=>t.id===S.lockedId);
+
+  // Counting lines
+  if(S.showZones){
+    for(const ln of S.lines){
+      const col=`hsl(${ln.hue},90%,60%)`;
+      g.save();g.strokeStyle=col;g.lineWidth=px(2.5);g.shadowColor=col;g.shadowBlur=px(5);
+      g.beginPath();g.moveTo(ln.x1,ln.y1);g.lineTo(ln.x2,ln.y2);g.stroke();g.shadowBlur=0;
+      const mx=(ln.x1+ln.x2)/2,my=(ln.y1+ln.y2)/2;
+      g.fillStyle='rgba(7,10,15,.82)';g.fillRect(mx-26,my-16,54,19);
+      g.fillStyle=col;g.font=`700 ${px(10)}px JetBrains Mono,monospace`;
+      g.save();if(S.mirror){g.translate(W,0);g.scale(-1,1);}
+      const lx2=S.mirror?W-mx:mx;
+      g.fillText(`↓${ln.in} ↑${ln.out}`,lx2-22,my+5);
+      g.restore();g.restore();
+    }
+    // Alert zones
+    for(const z of S.zones){
+      const col=`hsl(${z.hue},85%,60%)`,act=z.count>0;
+      g.save();
+      g.strokeStyle=act?col:`hsla(${z.hue},85%,60%,.4)`;g.lineWidth=px(act?2:1);
+      if(!act)g.setLineDash([px(5),px(5)]);
+      g.strokeRect(z.x,z.y,z.w,z.h);
+      g.fillStyle=`hsla(${z.hue},85%,60%,${act?0.12:0.04})`;g.fillRect(z.x,z.y,z.w,z.h);
+      if(act){
+        g.fillStyle=col;g.font=`700 ${px(10)}px JetBrains Mono,monospace`;
+        g.save();if(S.mirror){g.translate(W,0);g.scale(-1,1);}
+        const zx2=S.mirror?W-(z.x+z.w):z.x;
+        g.fillText(`ZONE ${z.count}`,zx2+4,z.y+14);g.restore();
+      }
+      g.restore();
+    }
+  }
+
+  drawBoresight(g,W,H,px,!!locked);
+
+  for(const t of vis){
+    const isL=t.id===S.lockedId;
+    const col=isL?'#FF6030':`hsl(${t.hue},80%,62%)`;
+
+    // Trail
+    if(S.trails&&t.trail.length>1){
+      g.beginPath();g.moveTo(t.trail[0].x,t.trail[0].y);
+      for(let i=1;i<t.trail.length;i++)g.lineTo(t.trail[i].x,t.trail[i].y);
+      g.strokeStyle=isL?'rgba(255,96,48,.5)':`hsla(${t.hue},80%,62%,.35)`;
+      g.lineWidth=px(2);g.lineJoin='round';g.stroke();
+    }
+
+    // Corner bracket box
+    const b=px(Math.min(22,Math.max(10,t.w*0.18)));
+    g.strokeStyle=col;g.lineWidth=px(isL?2.8:2);
+    if(isL){g.shadowColor=col;g.shadowBlur=px(8);}
+    g.beginPath();
+    g.moveTo(t.x,t.y+b);g.lineTo(t.x,t.y);g.lineTo(t.x+b,t.y);
+    g.moveTo(t.x+t.w-b,t.y);g.lineTo(t.x+t.w,t.y);g.lineTo(t.x+t.w,t.y+b);
+    g.moveTo(t.x+t.w,t.y+t.h-b);g.lineTo(t.x+t.w,t.y+t.h);g.lineTo(t.x+t.w-b,t.y+t.h);
+    g.moveTo(t.x+b,t.y+t.h);g.lineTo(t.x,t.y+t.h);g.lineTo(t.x,t.y+t.h-b);
+    g.stroke();g.shadowBlur=0;
+
+    // Re-ID flash
+    if(t.reidAt){
+      const age=performance.now()-t.reidAt;
+      if(age<1400){
+        const k=age/1400;
+        g.save();g.globalAlpha=(1-k)*0.9;g.strokeStyle='#35FF90';g.lineWidth=px(2);
+        const grow=px(6)+k*px(28);g.strokeRect(t.x-grow,t.y-grow,t.w+grow*2,t.h+grow*2);
+        g.globalAlpha=1-k;g.fillStyle='#35FF90';g.font=`700 ${px(10)}px JetBrains Mono,monospace`;
+        g.save();if(S.mirror){g.translate(W,0);g.scale(-1,1);}
+        g.fillText('◇ RE-ID',S.mirror?W-(t.x+t.w):t.x,Math.max(px(20),t.y-px(18)));
+        g.restore();g.restore();
+      }else{t.reidAt=0;}
+    }
+
+    if(isL){
+      g.save();g.strokeStyle='rgba(255,96,48,.18)';g.lineWidth=px(1);g.setLineDash([px(6),px(7)]);
+      g.strokeRect(t.x,t.y,t.w,t.h);g.restore();
+      g.save();g.strokeStyle='rgba(255,96,48,.38)';g.lineWidth=px(1);g.setLineDash([px(4),px(8)]);
+      g.beginPath();g.moveTo(W/2,H/2);g.lineTo(t.cx,t.cy);g.stroke();g.restore();
+      g.strokeStyle=col;g.lineWidth=px(1.5);
+      g.beginPath();g.moveTo(t.cx-px(14),t.cy);g.lineTo(t.cx+px(14),t.cy);
+      g.moveTo(t.cx,t.cy-px(14));g.lineTo(t.cx,t.cy+px(14));g.stroke();
+    }
+
+    // Velocity vector
+    if(S.vectors&&Math.hypot(t.vx,t.vy)>12){
+      const k2=0.32,ex2=t.cx+t.vx*k2,ey2=t.cy+t.vy*k2;
+      g.strokeStyle=col;g.lineWidth=px(2);
+      g.beginPath();g.moveTo(t.cx,t.cy);g.lineTo(ex2,ey2);g.stroke();
+      const ang=Math.atan2(ey2-t.cy,ex2-t.cx),ah=px(7);
+      g.fillStyle=col;g.beginPath();
+      g.moveTo(ex2,ey2);g.lineTo(ex2-ah*Math.cos(ang-.4),ey2-ah*Math.sin(ang-.4));
+      g.lineTo(ex2-ah*Math.cos(ang+.4),ey2-ah*Math.sin(ang+.4));g.closePath();g.fill();
+    }
+
+    // Label + speed
+    const spd=S.showSpeed&&t.speedKmh>0.5?` ${t.speedKmh.toFixed(0)}km/h`:'';
+    const lbl=`${t.cls.toUpperCase()} #${t.id}  ${(t.score*100).toFixed(0)}%${spd}`;
+    const fs=px(11.5);
+    g.save();if(S.mirror){g.translate(W,0);g.scale(-1,1);}
+    const lx=S.mirror?W-(t.x+t.w):t.x;
+    g.font=`600 ${fs}px Rajdhani,sans-serif`;
+    const tw=g.measureText(lbl).width;
+    const ly=Math.max(fs+px(6),t.y-px(5));
+    g.fillStyle=isL?'rgba(255,96,48,.92)':'rgba(7,10,15,.88)';
+    g.fillRect(lx,ly-fs-px(3),tw+px(10),fs+px(6));
+    if(!isL){g.strokeStyle=col;g.lineWidth=px(.8);g.strokeRect(lx,ly-fs-px(3),tw+px(10),fs+px(6));}
+    g.fillStyle=isL?'#100304':col;g.fillText(lbl,lx+px(5),ly);
+    g.restore();
+  }
+
+  drawPreview(g,W,H,px);
+}
+
+function drawBoresight(g,W,H,px,hasL){
+  const cx=W/2,cy=H/2;
+  g.strokeStyle=hasL?'rgba(255,96,48,.55)':'rgba(0,229,200,.32)';
+  g.lineWidth=px(1.2);
+  const a=px(10),gp=px(5);
+  g.beginPath();
+  g.moveTo(cx-a-gp,cy);g.lineTo(cx-gp,cy);g.moveTo(cx+gp,cy);g.lineTo(cx+a+gp,cy);
+  g.moveTo(cx,cy-a-gp);g.lineTo(cx,cy-gp);g.moveTo(cx,cy+gp);g.lineTo(cx,cy+a+gp);
+  g.stroke();
+  g.beginPath();g.arc(cx,cy,px(2.5),0,Math.PI*2);
+  g.fillStyle=hasL?'rgba(255,96,48,.75)':'rgba(0,229,200,.45)';g.fill();
+}
+
+function drawPreview(g,W,H,px){
+  if(S.drawMode==='line'&&S.lineStart&&_mouse){
+    g.save();g.strokeStyle='rgba(0,229,200,.7)';g.lineWidth=px(2);g.setLineDash([px(6),px(4)]);
+    g.beginPath();g.moveTo(S.lineStart.x,S.lineStart.y);g.lineTo(_mouse.x,_mouse.y);g.stroke();g.restore();
+  }
+  if(S.drawMode==='zone'&&S.zoneDrag&&_mouse){
+    const{x,y}=S.zoneDrag,{x:mx,y:my}=_mouse;
+    g.save();g.strokeStyle='rgba(0,229,200,.7)';g.lineWidth=px(1.5);g.setLineDash([px(5),px(4)]);
+    g.fillStyle='rgba(0,229,200,.07)';
+    g.strokeRect(Math.min(x,mx),Math.min(y,my),Math.abs(mx-x),Math.abs(my-y));
+    g.fillRect(Math.min(x,mx),Math.min(y,my),Math.abs(mx-x),Math.abs(my-y));
+    g.restore();
+  }
+}
+
+/* ── UI HELPERS ────────────────────────────────────────────────── */
+function renderTracks(){
+  const vis=Tracker.visible().sort((a,b)=>b.score-a.score);
+  $('trackCount').textContent=vis.length;
+  let dirty=false;for(const t of vis)if(!S.seenClasses.has(t.cls)){S.seenClasses.add(t.cls);dirty=true;}
+  if(dirty)renderChips();
+  const el=$('trackList');
+  if(!vis.length){el.innerHTML=`<div class="empty">${S.running?'Scanning…':'No objects tracked.'}</div>`;return;}
+  el.innerHTML=vis.slice(0,25).map(t=>{
+    const col=t.id===S.lockedId?'#FF6030':`hsl(${t.hue},80%,62%)`;
+    const spd=t.speedKmh>0.5?t.speedKmh.toFixed(0)+' km/h':'—';
+    return`<div class="trk${t.id===S.lockedId?' locked':''}" data-id="${t.id}">
+      <div class="trk-sw" style="background:${col}"></div>
+      <div class="trk-inf"><span class="trk-cls">${esc(t.cls)}</span>
+        <span class="trk-meta">ID ${t.id} · ${spd} · ${Math.hypot(t.vx,t.vy).toFixed(0)}px/s</span></div>
+      <span class="trk-sc">${(t.score*100).toFixed(0)}%</span>
+      <button class="trk-lbtn">${t.id===S.lockedId?'LOCKED':'LOCK'}</button>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.trk').forEach(row=>{row.onclick=()=>{const id=Number(row.dataset.id);setLock(S.lockedId===id?null:id);};});
+}
+
+function renderChips(){
+  const el=$('chips'),cls=[...S.seenClasses].sort();
+  if(!cls.length){el.innerHTML='<div class="empty">Classes appear as detected.</div>';return;}
+  el.innerHTML=cls.map(c=>`<button class="chip${S.filter.has(c)?' on':''}" data-c="${esc(c)}">${esc(c)}</button>`).join('');
+  el.querySelectorAll('.chip').forEach(ch=>{ch.onclick=()=>{const c=ch.dataset.c;S.filter.has(c)?S.filter.delete(c):S.filter.add(c);$('filterTag').textContent=S.filter.size?`${S.filter.size} class${S.filter.size>1?'es':''}`:'all';renderChips();};});
+}
+
+function renderLineList(){
+  const el=$('lineList');
+  if(!S.lines.length){el.innerHTML='<div class="empty">No lines — use ╱ LINE tool above video.</div>';return;}
+  el.innerHTML=S.lines.map((ln,i)=>`<div class="ln-item"><div class="lncolor" style="background:hsl(${ln.hue},90%,60%)"></div><span>Line ${i+1}</span><span class="lncounts">↓${ln.in} ↑${ln.out}</span><button class="delbtn" data-lid="${ln.id}">✕</button></div>`).join('');
+  el.querySelectorAll('.delbtn').forEach(b=>{b.onclick=()=>{S.lines=S.lines.filter(l=>l.id!==Number(b.dataset.lid));renderLineList();};});
+}
+
+function renderZoneList(){
+  const el=$('zoneList');
+  if(!S.zones.length){el.innerHTML='<div class="empty">No zones — use ▭ ZONE tool above video.</div>';return;}
+  el.innerHTML=S.zones.map((z,i)=>`<div class="zn-item"><div class="zncolor" style="background:hsl(${z.hue},85%,60%)"></div><span>Zone ${i+1}</span><span class="zncount">${z.count} obj</span><button class="delbtn" data-zid="${z.id}">✕</button></div>`).join('');
+  el.querySelectorAll('.delbtn').forEach(b=>{b.onclick=()=>{S.zones=S.zones.filter(z=>z.id!==Number(b.dataset.zid));renderZoneList();};});
+}
+
+function setLock(id){
+  S.lockedId=id;S.lockLost=false;
+  const p=$('pLock');
+  if(id){p.className='pill locked';$('pLockTxt').textContent='LOCK #'+id;$('guideTag').textContent='active';}
+  else{p.className='pill';$('pLockTxt').textContent='NO LOCK';$('guideTag').textContent='standby';clearTelem();}
+  renderTracks();if(S.running)draw();
+}
+
+function onReid(tr){
+  updateReidTag();
+  if(tr.id===S.lockedId){$('pLock').className='pill locked';$('pLockTxt').textContent='LOCK #'+tr.id;$('guideTag').textContent='active';toast(`Re-acquired lock · ${tr.cls} #${tr.id}`);}
+  else toast(`Re-identified ${tr.cls} #${tr.id}`);
+}
+
+function updateReidTag(){
+  const el=$('reidTag');if(!el)return;
+  el.textContent=S.reid?`ON · ${S.reids} · ${Tracker.gallery.length} held`:'OFF';
+}
+
+function clearTelem(){
+  ['tTarget','tSpeed','tErr','tRange','tBear'].forEach(id=>$(id).textContent='—');
+  ['tYaw','tPitch','tFwd'].forEach(id=>$(id).textContent='0.00');
+  ['bYaw','bPitch','bFwd'].forEach(id=>{const b=$(id);b.style.left='50%';b.style.width='0';});
+  ['bYawV','bPitchV','bFwdV'].forEach(id=>$(id).textContent='0.00');
+}
+
+function setBar(id,v){
+  const b=$(id),pct=Math.min(1,Math.abs(v))*50;
+  b.style.left=(v>=0?50:50-pct)+'%';b.style.width=pct+'%';
+  b.style.background=Math.abs(v)>0.6?'#FF3355':'#FF6030';
+}
+
+let _lastTelemT=0,_lastRecT=0;
+function tickGuidance(){
+  const t=Tracker.tracks.find(x=>x.id===S.lockedId);
+  if(!t){
+    if(S.lockedId!=null){
+      if(S.reid&&Tracker.lockedInGallery()){
+        S.lockLost=true;$('pLock').className='pill reacq';$('pLockTxt').textContent='REACQ #'+S.lockedId;$('guideTag').textContent='reacquiring';
+      }else{setLock(null);}
+    }
+    return;
+  }
+  if(S.lockLost){S.lockLost=false;$('pLock').className='pill locked';}
+  const G=guidance(t);if(!G)return;
+  const now=performance.now();
+  if(now-_lastTelemT>90){
+    _lastTelemT=now;
+    $('tTarget').textContent=`${t.cls} #${t.id}`;$('tTarget').className='teal';
+    $('tSpeed').textContent=t.speedKmh>0.5?t.speedKmh.toFixed(1)+' km/h':'—';
+    $('tErr').textContent=`${G.ex.toFixed(3)} / ${G.ey.toFixed(3)}`;
+    $('tRange').textContent=G.range.toFixed(1)+' m';$('tBear').textContent=`${G.bearing.toFixed(1)}° / ${G.elev.toFixed(1)}°`;
+    $('tYaw').textContent=G.cmd.yaw_rate.toFixed(2);$('tPitch').textContent=G.cmd.pitch_rate.toFixed(2);$('tFwd').textContent=G.cmd.fwd_vel.toFixed(2);
+    setBar('bYaw',G.cmd.yaw_rate);$('bYawV').textContent=G.cmd.yaw_rate.toFixed(2);
+    setBar('bPitch',G.cmd.pitch_rate);$('bPitchV').textContent=G.cmd.pitch_rate.toFixed(2);
+    setBar('bFwd',G.cmd.fwd_vel);$('bFwdV').textContent=G.cmd.fwd_vel.toFixed(2);
+  }
+  if(S.wsOn&&S.ws?.readyState===1){try{S.ws.send(JSON.stringify({type:'track',...G}));}catch{}}
+  if(S.recording&&now-_lastRecT>200){_lastRecT=now;S.records.push(G);}
+}
+
+/* ── LAYER 5: GITHUB ───────────────────────────────────────────── */
+async function ghInit(){
+  const user=$('ghUser').value.trim(),repo=$('ghRepo').value.trim(),token=$('ghToken').value.trim();
+  if(!user||!repo||!token){ghSt('Fill in all three fields.','err');return;}
+  S.ghUser=user;S.ghRepo=repo;S.ghToken=token;
+  const H={'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github+json'};
+  ghSt('Checking repo…');
+  try{
+    let r=await fetch(`https://api.github.com/repos/${user}/${repo}`,{headers:H});
+    if(r.status===404){
+      ghSt('Creating repo…');
+      r=await fetch('https://api.github.com/user/repos',{method:'POST',headers:H,
+        body:JSON.stringify({name:repo,auto_init:true,private:false,description:'VECTOR PRO tracking'})});
+      if(!r.ok){const e=await r.json();ghSt('Create failed: '+e.message,'err');return;}
+      ghSt('Repo created — pushing files…');
+      await new Promise(res=>setTimeout(res,2500));
+    }else if(!r.ok){const e=await r.json();ghSt(e.message,'err');return;}
+    await ghPush(H,user,repo,'index.html',document.documentElement.outerHTML);
+    await ghPush(H,user,repo,'.github/workflows/deploy.yml',DEPLOY_YML);
+    await ghPush(H,user,repo,'bridge/drone_bridge.py',BRIDGE_STUB);
+    await ghPush(H,user,repo,'README.md',`# VECTOR PRO\nhttps://${user}.github.io/${repo}/\n`);
+    ghSt('Enabling GitHub Pages…');
+    await fetch(`https://api.github.com/repos/${user}/${repo}/pages`,{method:'POST',headers:H,
+      body:JSON.stringify({source:{branch:'main',path:'/'}})}).catch(()=>{});
+    ghSt(`✓ Deploying to:\nhttps://${user}.github.io/${repo}/\n(live in ~60s)`,'ok');
+    $('pGH').className='pill linked';$('pGHTxt').textContent='GITHUB UP';$('ghTag').textContent='live';
+    toast('GitHub Pages deploying…',4000);
+  }catch(e){ghSt('Error: '+e.message,'err');}
+}
+
+async function ghDeploy(){
+  if(!S.ghUser||!S.ghRepo||!S.ghToken){ghSt('Run Init Repo first.','err');return;}
+  const H={'Authorization':'token '+S.ghToken,'Content-Type':'application/json','Accept':'application/vnd.github+json'};
+  ghSt('Pushing index.html…');
+  try{
+    await ghPush(H,S.ghUser,S.ghRepo,'index.html',document.documentElement.outerHTML);
+    ghSt(`✓ Pushed!\nhttps://${S.ghUser}.github.io/${S.ghRepo}/`,'ok');toast('Pushed to GitHub Pages');
+  }catch(e){ghSt('Push failed: '+e.message,'err');}
+}
+
+async function ghPush(H,user,repo,path,content){
+  let sha='';
+  try{const r=await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${path}`,{headers:H});if(r.ok){const d=await r.json();sha=d.sha;}}catch{}
+  const b64=btoa(unescape(encodeURIComponent(content)));
+  const body={message:`Update ${path} via VECTOR PRO`,content:b64};if(sha)body.sha=sha;
+  const r=await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${path}`,{method:'PUT',headers:H,body:JSON.stringify(body)});
+  if(!r.ok){const e=await r.json();throw new Error(e.message);}
+}
+
+function ghSt(msg,type=''){const el=$('ghStatus');el.textContent=msg;el.className='gh-status'+(type?' '+type:'');}
+
+const DEPLOY_YML=`name: Deploy VECTOR PRO
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: \${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - id: deployment
+        uses: actions/deploy-pages@v4
+`;
+
+const BRIDGE_STUB=`#!/usr/bin/env python3
+"""VECTOR PRO Drone Bridge — full version in bridge/drone_bridge.py"""
+import asyncio,json,logging
+logging.basicConfig(level=logging.INFO)
+try:
+    import websockets
+except ImportError:
+    raise SystemExit('pip install websockets')
+async def serve(ws):
+    async for msg in ws:
+        d=json.loads(msg)
+        if d.get('type')=='track':
+            c=d.get('cmd',{})
+            print(f"YAW={c.get('yaw_rate',0):+.3f} PITCH={c.get('pitch_rate',0):+.3f} FWD={c.get('fwd_vel',0):+.3f} SPEED={d.get('speed_kmh',0):.1f}km/h")
+async def main():
+    async with websockets.serve(serve,'0.0.0.0',8765):
+        print('Bridge on ws://0.0.0.0:8765'); await asyncio.Future()
+asyncio.run(main())
+`;
+
+/* ── BRIDGE / EXPORT ────────────────────────────────────────────── */
+function toggleLink(){
+  if(S.wsOn){closeLink();return;}
+  const url=$('wsUrl').value.trim();if(!url)return;
+  if(location.protocol==='https:'&&url.startsWith('ws://')){toast('HTTPS → use wss:// or run locally');return;}
+  try{
+    const ws=new WebSocket(url);
+    $('pLink').className='pill locked';$('pLinkTxt').textContent='CONNECTING…';
+    ws.onopen=()=>{S.ws=ws;S.wsOn=true;$('pLink').className='pill linked';$('pLinkTxt').textContent='BRIDGE UP';$('linkBtn').textContent='Disconnect';toast('Bridge connected');};
+    ws.onclose=()=>{if(S.wsOn)toast('Bridge disconnected');closeLink();};
+    ws.onerror=()=>{toast('Bridge unreachable — is drone_bridge.py running?');closeLink();};
+  }catch{toast('Bad WebSocket URL');closeLink();}
+}
+function closeLink(){S.ws?.close();S.ws=null;S.wsOn=false;$('pLink').className='pill';$('pLinkTxt').textContent='BRIDGE OFF';$('linkBtn').textContent='Connect';}
+
+function dl(name,text,mime){
+  const b=new Blob([text],{type:mime}),u=URL.createObjectURL(b),a=document.createElement('a');
+  a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);
+}
+function exportJson(){
+  if(!S.records.length)return toast('Nothing recorded');
+  dl(`vp-${Date.now()}.json`,JSON.stringify({engine:S.engine,samples:S.records},null,2),'application/json');
+  toast(`Exported ${S.records.length} samples`);
+}
+function exportCsv(){
+  if(!S.records.length)return toast('Nothing recorded');
+  const head='t,id,cls,score,speed_kmh,ex,ey,range_m,bearing,elev,x,y,w,h,yaw,pitch,fwd';
+  const rows=S.records.map(r=>[r.t,r.id,r.cls,r.score,r.speed_kmh,r.ex,r.ey,r.range,r.bearing,r.elev,r.px.x,r.px.y,r.px.w,r.px.h,r.cmd.yaw_rate,r.cmd.pitch_rate,r.cmd.fwd_vel].join(','));
+  dl(`vp-${Date.now()}.csv`,[head,...rows].join('\n'),'text/csv');
+  toast(`Exported ${S.records.length} rows`);
+}
+function snapshot(){
+  if(!S.running)return toast('Camera off');
+  const c=document.createElement('canvas');c.width=S.vw;c.height=S.vh;
+  const g=c.getContext('2d');g.drawImage($('video'),0,0);g.drawImage($('cvMain'),0,0);
+  c.toBlob(b=>{const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`vp-${Date.now()}.png`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);},'image/png');
+  toast('Frame saved');
+}
+
+/* ── CANVAS INTERACTION ─────────────────────────────────────────── */
+let _mouse=null;
+
+function cvCoords(e,canvas){
+  const r=canvas.getBoundingClientRect(),touch=e.touches?.[0]??e;
+  let x=((touch.clientX-r.left)/r.width)*canvas.width;
+  const y=((touch.clientY-r.top)/r.height)*canvas.height;
+  if(S.mirror)x=canvas.width-x;
+  return{x,y};
+}
+
+function cvDown(e){
+  if(!S.running)return;e.preventDefault();
+  const pos=cvCoords(e,$('cvMain'));
+  if(S.drawMode==='line'){
+    if(!S.lineStart){S.lineStart=pos;}
+    else{
+      S.lines.push({id:++_linId,x1:S.lineStart.x,y1:S.lineStart.y,x2:pos.x,y2:pos.y,hue:(_linId*67+180)%360,in:0,out:0});
+      S.lineStart=null;renderLineList();toast('Line added');
+    }
+    return;
+  }
+  if(S.drawMode==='zone'){S.zoneDrag=pos;return;}
+  // select
+  const hits=Tracker.visible().filter(t=>pos.x>=t.x&&pos.x<=t.x+t.w&&pos.y>=t.y&&pos.y<=t.y+t.h);
+  if(!hits.length){setLock(null);return;}
+  hits.sort((a,b)=>a.w*a.h-b.w*b.h);setLock(hits[0].id);
+}
+
+function cvUp(e){
+  if(S.drawMode==='zone'&&S.zoneDrag&&_mouse){
+    const{x:ax,y:ay}=S.zoneDrag,{x:bx,y:by}=_mouse;
+    if(Math.abs(bx-ax)>20&&Math.abs(by-ay)>20){
+      S.zones.push({id:++_znId,x:Math.min(ax,bx),y:Math.min(ay,by),w:Math.abs(bx-ax),h:Math.abs(by-ay),hue:(_znId*83+60)%360,count:0});
+      renderZoneList();toast('Zone added');
+    }
+    S.zoneDrag=null;
+  }
+}
+
+function cvMove(e){if(!S.running)return;e.preventDefault();_mouse=cvCoords(e,$('cvMain'));}
+
+function setDrawMode(mode){
+  S.drawMode=mode;S.lineStart=null;S.zoneDrag=null;
+  ['dtSelect','dtLine','dtZone'].forEach(id=>$(id).classList.remove('active'));
+  const modeMap={select:'dtSelect',line:'dtLine',zone:'dtZone'};
+  if(modeMap[mode])$(modeMap[mode]).classList.add('active');
+}
+
+/* ── WIRE ───────────────────────────────────────────────────────── */
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+function autoLock(){
+  const vis=Tracker.visible();if(!vis.length)return toast('Nothing to lock');
+  const cx=S.vw/2,cy=S.vh/2;
+  vis.sort((a,b)=>(b.score-a.score)||Math.hypot(a.cx-cx,a.cy-cy)-Math.hypot(b.cx-cx,b.cy-cy));
+  setLock(vis[0].id);toast(`Locked ${vis[0].cls} #${vis[0].id}`);
+}
+
+function wire(){
+  if(!window.isSecureContext&&location.protocol!=='http:')$('httpsWarn').style.display='block';
+  $('startBtn').onclick=$('bootBtn').onclick=boot;
+  $('snapBtn').onclick=snapshot;
+
+  const cm=$('cvMain');
+  cm.addEventListener('mousedown',cvDown);cm.addEventListener('mouseup',cvUp);cm.addEventListener('mousemove',cvMove);
+  cm.addEventListener('touchstart',cvDown,{passive:false});cm.addEventListener('touchend',cvUp,{passive:false});cm.addEventListener('touchmove',cvMove,{passive:false});
+
+  $('devSel').onchange=async()=>{if(!S.running)return;try{await startCamera($('devSel').value);Tracker.reset();setLock(null);}catch{toast('Camera switch failed');}};
+  $('resSel').onchange=async()=>{if(!S.running)return;try{await startCamera($('devSel').value||null);Tracker.reset();setLock(null);}catch{toast('Resolution not supported');}};
+  $('mirrorChk').onchange=e=>{S.mirror=e.target.checked;$('vpWrap').classList.toggle('mirror-on',S.mirror);};
+  $('vpWrap').classList.toggle('mirror-on',S.mirror);
+  $('zoomRange').oninput=e=>{const z=Number(e.target.value);$('zoomVal').textContent=z.toFixed(1)+'x';S.camTrack?.applyConstraints({advanced:[{zoom:z}]}).catch(()=>{});};
+  $('torchChk').onchange=e=>{S.camTrack?.applyConstraints({advanced:[{torch:e.target.checked}]}).catch(()=>toast('Torch unsupported'));};
+
+  $('confRange').oninput=e=>{S.conf=+e.target.value;$('confVal').textContent=S.conf.toFixed(2);};
+  $('strideRange').oninput=e=>{S.stride=+e.target.value;$('strideVal').textContent=S.stride;};
+  $('missRange').oninput=e=>{S.maxMiss=+e.target.value;$('missVal').textContent=S.maxMiss;};
+  $('trailChk').onchange=e=>{S.trails=e.target.checked;};
+  $('vecChk').onchange=e=>{S.vectors=e.target.checked;};
+  $('speedChk').onchange=e=>{S.showSpeed=e.target.checked;};
+
+  $('reidChk').onchange=e=>{S.reid=e.target.checked;if(!S.reid){Tracker.gallery=[];if(S.lockLost)setLock(null);}updateReidTag();};
+  $('reidMemRange').oninput=e=>{S.reidMemory=+e.target.value;$('reidMemVal').textContent=S.reidMemory;};
+  $('reidThreshRange').oninput=e=>{S.reidThresh=+e.target.value;$('reidThreshVal').textContent=S.reidThresh.toFixed(2);};
+
+  // Overlay toggles
+  const mk=(btn,key)=>{const b=$(btn);b.onclick=()=>{S[key]=!S[key];b.classList.toggle('on',S[key]);};};
+  mk('ovHeat','showHeat');mk('ovTrails','trails');mk('ovSpeed','showSpeed');mk('ovZones','showZones');
+
+  // Draw tools
+  $('dtSelect').onclick=()=>setDrawMode('select');
+  $('dtLine').onclick=()=>{setDrawMode('line');toast('Click two points on the video to draw a counting line');};
+  $('dtZone').onclick=()=>{setDrawMode('zone');toast('Drag on the video to draw an alert zone');};
+  $('dtClear').onclick=()=>{
+    S.lines=[];S.zones=[];Analytics.totalIn=0;Analytics.totalOut=0;S.lineStart=null;S.zoneDrag=null;
+    renderLineList();renderZoneList();$('abCross').textContent='0/0';$('abZone').textContent='0';
+    toast('Lines and zones cleared');
+  };
+
+  $('kpRange').oninput=e=>{S.kp=+e.target.value;$('kpVal').textContent=S.kp.toFixed(2);};
+  $('soRange').oninput=e=>{S.standoff=+e.target.value;$('soVal').textContent=S.standoff.toFixed(1)+'m';};
+  $('fovRange').oninput=e=>{S.fovDeg=+e.target.value;$('fovVal').textContent=S.fovDeg+'°';};
+  $('clearFilterBtn').onclick=()=>{S.filter.clear();$('filterTag').textContent='all';renderChips();};
+  $('autoLockBtn').onclick=autoLock;$('unlockBtn').onclick=()=>setLock(null);
+  $('ghInitBtn').onclick=ghInit;$('ghDeployBtn').onclick=ghDeploy;
+  $('linkBtn').onclick=toggleLink;
+  $('recBtn').onclick=()=>{
+    S.recording=!S.recording;$('recBtn').textContent=S.recording?'Stop rec':'Record';
+    $('recBtn').className='btn btn-g btn-sm'+(S.recording?' btn-d':'');
+    if(S.recording){S.records=[];toast('Recording telemetry');}else toast(`Recorded ${S.records.length} samples`);
+  };
+  $('expJsonBtn').onclick=exportJson;$('expCsvBtn').onclick=exportCsv;
+
+  document.addEventListener('keydown',e=>{
+    if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
+    const k=e.key.toLowerCase();
+    if(k==='l'){e.preventDefault();autoLock();}
+    else if(k==='u'){e.preventDefault();setLock(null);}
+    else if(k==='h'){e.preventDefault();$('ovHeat').click();}
+    else if(k==='t'){e.preventDefault();$('ovTrails').click();}
+    else if(k==='s'){e.preventDefault();$('ovSpeed').click();}
+    else if(e.code==='Space'){e.preventDefault();if(!S.running)return;S.paused=!S.paused;toast(S.paused?'Paused':'Running');}
+  });
+
+  window.addEventListener('beforeunload',()=>{stopStream();closeLink();});
+  clearTelem();
+}
+
+wire();
+window.__VP={S,Tracker,Perception,Analytics,guidance,setLock,autoLock,boot};
+</script>
+</body>
+</html>
